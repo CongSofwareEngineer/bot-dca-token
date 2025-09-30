@@ -6,9 +6,7 @@ import connectDB from '@/config/database'
 import { errorHandler } from '@/middleware/auth'
 
 // Import routes
-import authRoutes from '@/routes/auth'
-import tokenRoutes from '@/routes/tokens'
-import dcaRoutes from '@/routes/dca'
+
 import dcaStrategyRoutes from '@/routes/dcaStrategy'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './config/swagger'

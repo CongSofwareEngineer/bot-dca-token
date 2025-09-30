@@ -1,11 +1,6 @@
 import express from 'express'
 import {
-  createToken,
-  getTokens,
-  getTokenById,
-  updateToken,
-  deleteToken,
-  toggleTokenStatus
+  createToken
 } from '@/controllers/tokenController'
 import { authenticateToken } from '@/middleware/auth'
 
@@ -41,10 +36,10 @@ router.use(authenticateToken)
 
 // Token CRUD operations
 router.post('/', createToken)
-router.get('/', getTokens)
-router.get('/:id', getTokenById)
-router.put('/:id', updateToken)
-router.delete('/:id', deleteToken)
-router.patch('/:id/toggle', toggleTokenStatus)
+// router.get('/', getTokens)
+// router.get('/:id', getTokenById)
+// router.put('/:id', updateToken)
+// router.delete('/:id', deleteToken)
+// router.patch('/:id/toggle', toggleTokenStatus)
 
 export default router
