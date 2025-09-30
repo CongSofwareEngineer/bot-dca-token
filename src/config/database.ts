@@ -5,11 +5,13 @@ dotenv.config()
 
 const connectDB = async (): Promise<void> => {
   try {
-    const mongoURI = `mongodb+srv://${process.env.USER_NAME_MONGO}:${process.env.PASSWORD_MONGO}@tc-store-admin.mpkyxqj.mongodb.net/?retryWrites=true&w=majority&appName=tc-store-admin`
+    const mongoURI = `mongodb+srv://${process.env.USER_NAME_MONGO}:${process.env.PASSWORD_MONGO}@tc-store-admin.mpkyxqj.mongodb.net/?retryWrites=true&w=majority&appName=dca-token`
     console.log({ mongoURI })
 
 
-    await mongoose.connect(mongoURI)
+    await mongoose.connect(mongoURI, {
+      dbName: 'dca-token'
+    })
 
     console.log('✅ MongoDB connected successfully')
   } catch (error) {

@@ -71,10 +71,10 @@ class App {
     })
 
     // API routes
-    this.app.use('/api/auth', authRoutes)
-    this.app.use('/api/tokens', tokenRoutes)
-    this.app.use('/api/dca', dcaRoutes) // Generic DCA routes - no auth required
-    this.app.use('/api/dca/strategy', dcaStrategyRoutes) // Strategy-based ETH DCA
+    // this.app.use('/api/auth', authRoutes)
+    // this.app.use('/api/tokens', tokenRoutes)
+    // this.app.use('/api/dca', dcaRoutes) // Generic DCA routes - no auth required
+    this.app.use('/api/dca', dcaStrategyRoutes) // Strategy-based ETH DCA
 
     // Swagger documentation
     this.app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
