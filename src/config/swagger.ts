@@ -36,7 +36,7 @@ const options: swaggerJsdoc.Options = {
       version: '1.0.0',
       description: 'API documentation for DCA token bot (Auth, Tokens, DCA, Strategy)'
     },
-    servers: [{ url: 'http://localhost:3000', description: 'Local dev' }],
+    servers: [{ url: process.env.DOMAIN, description: 'Local dev' }],
     components: {
       securitySchemes: {
         bearerAuth: {

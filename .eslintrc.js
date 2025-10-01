@@ -55,12 +55,12 @@ module.exports = {
     // Enforce no semicolons (user preference)
     'semi': ['error', 'never'],
     'indent': ['error', 2, { SwitchCase: 1 }],
-    'max-len': ['warn', {
-      code: 100,
-      ignoreUrls: true,
-      ignoreStrings: true,
-      ignoreTemplateLiterals: true
-    }],
+    // 'max-len': ['warn', {
+    //   code: 100,
+    //   ignoreUrls: true,
+    //   ignoreStrings: true,
+    //   ignoreTemplateLiterals: true
+    // }],
 
     // Import rules - tắt rule này vì gây lỗi
     'sort-imports': 'off'

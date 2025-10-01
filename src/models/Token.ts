@@ -25,10 +25,12 @@ const TokenSchema: Schema = new Schema(
     idBinance: { type: String, trim: true },
     decimals: { type: Number, default: 18, required: false }
 
-
   },
   {
-    timestamps: true
+    timestamps: {
+      createdAt: true, updatedAt: false
+    },
+    versionKey: false // Disable __v field
   }
 )
 

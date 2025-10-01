@@ -1,5 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose'
-import bcrypt from 'bcryptjs'
+import mongoose, { Schema } from 'mongoose'
 
 export interface IUser {
   stepSize: string // Maximum amount to invest per trade in USD
@@ -7,12 +6,17 @@ export interface IUser {
   maxPrice: string // Upper price limit for token purchase
   minPrice: string // Lower price limit for token purchase
   initialCapital: string // Initial capital allocated for DCA in USD
+  capital: string // Current total USD amount invested
   isStop: boolean // Flag to indicate if DCA is paused
   priceBuyHistory: string
   tokenInput: string
-  amountUSD: string
+  // Amount in USD to buy each interval
   ratioPriceUp: string
+  ratioPriceDown: string
+  // Current total USD amount invested
+  amountUSDToBuy: string
   amountETHBought: string
+  version: number
 }
 
 const UserSchema: Schema = new Schema(
@@ -48,6 +52,11 @@ const UserSchema: Schema = new Schema(
       default: '1000',
       trim: true
     },
+    capital: {
+      type: String,
+      trim: true,
+      default: '0'
+    },
     isStop: {
       type: Boolean,
       required: true,
@@ -63,24 +72,35 @@ const UserSchema: Schema = new Schema(
       trim: true,
       default: 'ETH'
     },
-    amountUSD: {
-      type: String,
-      trim: true,
-      default: '50'
-    },
     ratioPriceUp: {
       type: String,
       trim: true,
       default: '5'
     },
+    ratioPriceDown: {
+      type: String,
+      trim: true,
+      default: '1'
+    },
     amountETHBought: {
+      type: String,
+      trim: true,
+      default: '0'
+    },
+    version: {
+      type: Number,
+      required: true,
+      default: 1
+    },
+    amountUSDToBuy: {
       type: String,
       trim: true,
       default: '0'
     }
   },
   {
-    timestamps: true
+    timestamps: { createdAt: true, updatedAt: false },
+    versionKey: false // Disable __v field
   }
 )
 
