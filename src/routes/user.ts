@@ -220,14 +220,10 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 type: number
  *                 description: Configuration version
  *                 example: 1
- *             required:
- *               - stepSize
- *               - slippageTolerance
- *               - maxPrice
- *               - minPrice
- *               - initialCapital
- *               - isStop
- *               - version
+ *               ratioProfitToSell:
+ *                 type: string
+ *                 description: Take profit percentage to sell
+ *                 example: "5"
  *     responses:
  *       200:
  *         description: User configuration created successfully
@@ -343,6 +339,10 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 type: number
  *                 description: Configuration version
  *                 example: 1
+ *               ratioProfitToSell:
+ *                 type: string
+ *                 description: Take profit percentage to sell
+ *                 example: "5"
  *     responses:
  *       200:
  *         description: User configuration updated successfully

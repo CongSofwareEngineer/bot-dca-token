@@ -17,38 +17,34 @@ export interface IUser {
   amountUSDToBuy: string
   amountETHBought: string
   version: number
+  ratioProfitToSell?: string
 }
 
 const UserSchema: Schema = new Schema(
   {
     stepSize: {
       type: String,
-      required: [true, 'Step size is required'],
       default: '50',
       trim: true
     },
     slippageTolerance: {
       type: Number,
-      required: [true, 'Slippage tolerance is required'],
       default: 1,
       min: 0,
       max: 100
     },
     maxPrice: {
       type: String,
-      required: [true, 'Max price is required'],
       default: '3000',
       trim: true
     },
     minPrice: {
       type: String,
-      required: [true, 'Min price is required'],
       default: '1000',
       trim: true
     },
     initialCapital: {
       type: String,
-      required: [true, 'Initial capital is required'],
       default: '1000',
       trim: true
     },
@@ -59,7 +55,6 @@ const UserSchema: Schema = new Schema(
     },
     isStop: {
       type: Boolean,
-      required: true,
       default: false
     },
     priceBuyHistory: {
@@ -96,6 +91,11 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true,
       default: '0'
+    },
+    ratioProfitToSell: {
+      type: String,
+      trim: true,
+      default: '5'
     }
   },
   {

@@ -6,6 +6,7 @@ import DCATrade, { IDCATrade } from '@/models/DCATrade'
 import { Token as TokenType } from '@/services/token/type'
 import { dcaV1, dcaV2 } from '@/utils/dca'
 import { isEqual } from 'lodash'
+import moment from 'moment'
 
 export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -13,7 +14,27 @@ export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> =>
     const [token, user] = await Promise.all([
       Token.findOne({ tokenSymbol: 'ETH' }).exec(),
       User.findOne({ version: 1 }).exec()
+
     ])
+
+    const lastHistory = await DCATrade.findOne({
+      idUser: user?._id?.toString() || 'default'
+    }).sort({ createdAt: -1 }).exec()
+
+    if (lastHistory) {
+      const now = moment(moment.now()).utc().valueOf()
+      const current = moment(lastHistory?.createdAt).utc().valueOf()
+      const timeValid = moment(current).add(3.5, 'hours').isBefore(now)
+
+      if (!timeValid) {
+        res.status(200).json({ success: true, data: { result: { timeValid, current, lastHistory, now } } })
+        return
+
+      }
+    }
+
+
+
     const price = await TokenService.getPrice(token?.idBinance || idETH)
     const item: IDCATrade = {
       createdAt: new Date(),
@@ -80,6 +101,27 @@ export const dcaTokenV2 = async (_req: Request, res: Response): Promise<void> =>
       Token.findOne({ tokenSymbol: 'ETH' }).exec(),
       User.findOne({ version: 2 }).exec()
     ])
+
+    const lastHistory = await DCATrade.findOne({
+      idUser: user?._id?.toString() || 'default'
+    }).sort({ createdAt: -1 }).exec()
+
+    if (lastHistory) {
+      console.log({ lastHistory })
+
+      const now = moment(moment.now()).utc().valueOf()
+      const current = moment(lastHistory?.createdAt).utc().valueOf()
+      const timeValid = moment(current).add(3.9, 'hours').isBefore(now)
+      if (!timeValid) {
+        res.status(200).json({ success: true, data: { result: { timeValid, current, lastHistory, now } } })
+        return
+
+      }
+    }
+
+
+
+
     const price = await TokenService.getPrice(token?.idBinance || idETH)
     const item: IDCATrade = {
       createdAt: new Date(),
@@ -100,52 +142,39 @@ export const dcaTokenV2 = async (_req: Request, res: Response): Promise<void> =>
       maxPrice: user?.maxPrice || '0',
       minPrice: user?.minPrice || '0',
       initialCapital: user?.initialCapital || '100',
+      capital: user?.capital || '0',
       priceBuyHistory: user?.priceBuyHistory || '0',
       tokenInput: user?.tokenInput || 'ETH',
       isStop: user?.isStop || false,
-      version: 2,
+      version: user?.version || 2,
 
       // Current total USD amount invested
       amountUSDToBuy: user?.amountUSDToBuy || '0',
       amountETHBought: user?.amountETHBought || '0',
       // Amount in USD to buy each interval
       ratioPriceUp: user?.ratioPriceUp || '0',
-      ratioPriceDown: user?.ratioPriceDown || '1',
-      capital: user?.capital || '0'
+      ratioPriceDown: user?.ratioPriceDown || '1'
+
     }
 
-    if (!token) {
-      await Token.create({
-        tokenSymbol: 'ETH',
-        tokenAddress: '0x2170ed0880ac9a755fd29b2688956bd959f933f8',
-        decimals: 18,
-        idBinance: idETH
-      })
-    }
 
-    if (!user) {
-      await User.create(userConfig)
-    }
     const result = dcaV2(item, tokenConfig, userConfig as any)
 
     const { item: itemResult, config: configResult } = result
+
     if (!isEqual(configResult, userConfig)) {
       await User.updateOne({ _id: user?._id }, { $set: configResult }).exec()
-      console.log('Update user config')
     }
 
-    await DCATrade.create(itemResult)
+    await DCATrade.create({
+      ...itemResult,
+      idUser: user?._id.toString() || 'default'
+    })
 
     // Remove any unwanted fields from result before sending response
-    const cleanResult = {
-      ...result,
-      item: {
-        ...result.item,
-        updatedAt: undefined  // Explicitly remove updatedAt if it exists
-      }
-    }
 
-    res.status(200).json({ success: true, data: { result: cleanResult } })
+
+    res.status(200).json({ success: true, data: { result } })
   } catch (e: any) {
     res.status(500).json({ success: false, message: 'Failed to get plan', error: e.message })
   }
