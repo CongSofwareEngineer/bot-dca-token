@@ -1,3 +1,4 @@
+export type ChainId = number
 export interface User {
   _id?: string;
   username: string;

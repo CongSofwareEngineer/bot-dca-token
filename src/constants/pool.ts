@@ -1,42 +1,24 @@
-export const V3_POOL_ABI = [
-  {
-    inputs: [],
-    name: 'slot0',
-    outputs: [
-      { internalType: 'uint160', name: 'sqrtPriceX96', type: 'uint160' },
-      { internalType: 'int24', name: 'tick', type: 'int24' },
-      { internalType: 'uint16', name: 'observationIndex', type: 'uint16' },
-      { internalType: 'uint16', name: 'observationCardinality', type: 'uint16' },
-      { internalType: 'uint16', name: 'observationCardinalityNext', type: 'uint16' },
-      { internalType: 'uint8', name: 'feeProtocol', type: 'uint8' },
-      { internalType: 'bool', name: 'unlocked', type: 'bool' }
-    ],
-    stateMutability: 'view',
-    type: 'function'
+import { CHAIN_ID_SUPPORT } from './chain'
+import { Address } from 'viem'
+
+export const DATA_UNISWAP = {
+  [CHAIN_ID_SUPPORT.Bsc]: {
+    uniswapPosition: '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613' as Address, //NonfungiblePositionManager
+    factoryAddress: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7' as Address, //UniswapV3Factory
+    //SwapRouter02 in Uniswap  
+    // https://docs.uniswap.org/contracts/v3/reference/deployments/bnb-deployments
+    routerAddress: '0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2' as Address,
+    // wrapTokenNative: '0x4200000000000000000000000000000000000006' as Address,
+    gasAddPosition: 2000000
   },
-  { inputs: [], name: 'token0', outputs: [{ internalType: 'address', name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'token1', outputs: [{ internalType: 'address', name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'liquidity', outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }], stateMutability: 'view', type: 'function' },
-  {
-    inputs: [],
-    name: 'fee',
-    outputs: [{ internalType: 'uint24', name: '', type: 'uint24' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  // ERC20 decimals & symbol
-  {
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ internalType: 'string', name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function'
+  [CHAIN_ID_SUPPORT.Base]: {
+    uniswapPosition: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1' as Address, //NonfungiblePositionManager
+    factoryAddress: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD' as Address, //UniswapV3Factory
+    //SwapRouter02 in Uniswap  
+    //https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
+    routerAddress: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a' as Address, //Uniswap V3 SwapRouter on Base
+    // wrapTokenNative: '0x4200000000000000000000000000000000000006' as Address,
+    gasAddPosition: 2000000
   }
-] as const
+
+}
