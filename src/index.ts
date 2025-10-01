@@ -39,11 +39,14 @@ class App {
     // Security middleware
     this.app.use(helmet())
 
-    // CORS configuration
+    // CORS configuration - Allow all origins for development
     this.app.use(
       cors({
-        origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-        credentials: true
+        origin: true, // Allows all origins
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        exposedHeaders: ['Content-Range', 'X-Content-Range']
       })
     )
 
