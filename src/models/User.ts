@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose'
 
 export interface IUser {
   stepSize: string // Maximum amount to invest per trade in USD
-  slippageTolerance: number // Acceptable slippage percentage
+  slippageTolerance: string // Acceptable slippage percentage
   maxPrice: string // Upper price limit for token purchase
   minPrice: string // Lower price limit for token purchase
   initialCapital: string // Initial capital allocated for DCA in USD
@@ -28,10 +28,8 @@ const UserSchema: Schema = new Schema(
       trim: true
     },
     slippageTolerance: {
-      type: Number,
-      default: 1,
-      min: 0,
-      max: 100
+      type: String,
+      default: '1'
     },
     maxPrice: {
       type: String,
