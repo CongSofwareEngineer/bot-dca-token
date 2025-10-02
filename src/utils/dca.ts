@@ -230,7 +230,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
           }
 
           //nếu giá token lớn hơn giá trung bình
-          if (BigNumber(token.price).isGreaterThan(priceAverage) && ratioPriceDrop > 0.1) {
+          if (BigNumber(token.price).isGreaterThan(priceAverage) && ratioPriceDrop >= 0.1) {
             const amountUSDAfterSell = BigNumber(amountETHToBuy)
               .multipliedBy(token.price)
               .multipliedBy(BigNumber(1).minus(BigNumber(configFinal.slippageTolerance).dividedBy(100)))
