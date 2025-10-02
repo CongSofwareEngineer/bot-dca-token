@@ -56,7 +56,6 @@ class App {
 
     // Request logging middleware
     this.app.use((req, res, next) => {
-      console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
       next()
     })
   }

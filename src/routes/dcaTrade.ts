@@ -1,5 +1,5 @@
 import express from 'express'
-import { dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory } from '@/controllers/dcaTrade'
+import { dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, dcaTestPool } from '@/controllers/dcaTrade'
 
 /**
  * @swagger
@@ -26,6 +26,48 @@ import { dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllD
  *     responses:
  *       200:
  *         description: Plan details
+ */
+/**
+ * @swagger
+ * /api/dca/dca-test-pool:
+ *   get:
+ *     summary: Test pool price calculation and sqrtPriceLimitX96
+ *     tags: [DCA-Strategy]
+ *     description: Test endpoint to calculate sqrtPriceLimitX96 for ETH/USDT pool using current ETH price from CoinMarketCap
+ *     responses:
+ *       200:
+ *         description: Pool calculation test completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     infoSqrt:
+ *                       type: string
+ *                       description: Calculated sqrtPriceLimitX96 value for the current ETH price
+ *                       example: "1581138830084681750122684711"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to get plan"
+ *                 error:
+ *                   type: string
+ *                   example: "Error message"
  */
 /**
  * @swagger
@@ -228,6 +270,7 @@ const router = express.Router()
 // No auth required
 router.get('/dca-v1', dcaTokenV1)
 router.get('/dca-v2', dcaTokenV2)
+router.get('/dca-test-pool', dcaTestPool)
 router.get('/dca-history', getDCAHistory)
 router.get('/dca-history/:idUser', getDCAHistoryByUserId)
 router.delete('/dca-history/clear-all', clearAllDCAHistory)

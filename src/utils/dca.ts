@@ -4,7 +4,7 @@ import { IUser } from '@/models/User'
 import { Token } from '@/services/token/type'
 import { BigNumber } from 'bignumber.js'
 
-const buyToken = (item: IDCATrade, config: IUser, amountUSD: string, amountETH: string) => {
+const buyToken = async (item: IDCATrade, config: IUser, amountUSD: string, amountETH: string) => {
   const itemFinal = deepClone(item as IDCATrade)
   const configFinal = deepClone(config as IUser)
 
@@ -22,7 +22,7 @@ const buyToken = (item: IDCATrade, config: IUser, amountUSD: string, amountETH: 
   return { item: itemFinal, config: configFinal }
 }
 
-const sellToken = (item: IDCATrade, config: IUser, amountUSD: string) => {
+const sellToken = async (item: IDCATrade, config: IUser, amountUSD: string) => {
   const itemFinal = deepClone(item as IDCATrade)
   const configFinal = deepClone(config as IUser)
 
@@ -37,6 +37,8 @@ const sellToken = (item: IDCATrade, config: IUser, amountUSD: string) => {
 
   return { item: itemFinal, config: configFinal }
 }
+
+
 
 const getRatePriceDrop = (currentPrice: number, minPrice: string, maxPrice: string) => {
   const rangePrice = BigNumber(maxPrice).minus(minPrice)
@@ -53,7 +55,7 @@ const getRatePriceDrop = (currentPrice: number, minPrice: string, maxPrice: stri
 }
 
 
-export const dcaV1 = (item: IDCATrade, token: Token, userConfig: IUser) => {
+export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) => {
   let itemFinal = deepClone(item as IDCATrade)
   let configFinal = deepClone(userConfig as IUser)
   let isStop = false
@@ -83,7 +85,7 @@ export const dcaV1 = (item: IDCATrade, token: Token, userConfig: IUser) => {
 
     //mua lần đầu tiên
     if (isFirstBuy) {
-      const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+      const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
       itemFinal = itemAfterBuy
       configFinal = configAfterBuy
@@ -97,14 +99,14 @@ export const dcaV1 = (item: IDCATrade, token: Token, userConfig: IUser) => {
 
         isStop = true
 
-        const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+        const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
         itemFinal = itemAfterBuy
         configFinal = configAfterBuy
       } else {
         if (BigNumber(token.price).isLessThanOrEqualTo(configFinal.priceBuyHistory)) {
           if (ratePriceDrop >= BigNumber(configFinal.ratioPriceDown || 1).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
             configFinal = configAfterBuy
@@ -114,7 +116,7 @@ export const dcaV1 = (item: IDCATrade, token: Token, userConfig: IUser) => {
           const ratioPriceDrop = BigNumber(priceAverage).minus(token.price).dividedBy(priceAverage).abs().toNumber()
 
           if (BigNumber(token.price).isLessThan(priceAverage) && ratioPriceDrop <= BigNumber(configFinal.ratioPriceUp || 3).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
             configFinal = configAfterBuy
@@ -144,7 +146,7 @@ export const dcaV1 = (item: IDCATrade, token: Token, userConfig: IUser) => {
   return { item: itemFinal, config: configFinal, isStop }
 }
 
-export const dcaV2 = (item: IDCATrade, token: Token, userConfig: IUser) => {
+export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) => {
   let itemFinal = deepClone(item as IDCATrade)
   let configFinal = deepClone(userConfig as IUser)
   let isStop = false
@@ -175,7 +177,7 @@ export const dcaV2 = (item: IDCATrade, token: Token, userConfig: IUser) => {
 
 
     if (isFirstBuy) {
-      const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+      const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
       itemFinal = itemAfterBuy
       configFinal = configAfterBuy
@@ -203,12 +205,14 @@ export const dcaV2 = (item: IDCATrade, token: Token, userConfig: IUser) => {
 
         isStop = true
 
-        itemFinal = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy).item
-        configFinal = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy).config
+        const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+
+        itemFinal = itemAfterBuy
+        configFinal = configAfterBuy
       } else {
         if (BigNumber(token.price).isLessThanOrEqualTo(configFinal.priceBuyHistory)) {
           if (ratePriceDrop >= BigNumber(configFinal.ratioPriceDown || 1).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
             configFinal = configAfterBuy
@@ -219,7 +223,7 @@ export const dcaV2 = (item: IDCATrade, token: Token, userConfig: IUser) => {
 
           //nếu giá token nhỏ hơn giá trung bình
           if (BigNumber(token.price).isLessThan(priceAverage) && ratioPriceDrop <= BigNumber(configFinal.ratioPriceUp || 3).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
             configFinal = configAfterBuy
@@ -232,9 +236,8 @@ export const dcaV2 = (item: IDCATrade, token: Token, userConfig: IUser) => {
               .multipliedBy(BigNumber(1).minus(BigNumber(configFinal.slippageTolerance).dividedBy(100)))
               .toFixed()
 
-            console.log({ amountUSDAfterSell, priceAverage, tokenPrice: token.price, amountETHToBuy })
 
-            const { item: itemAfterSell, config: configAfterSell } = sellToken(itemFinal, configFinal, amountUSDAfterSell)
+            const { item: itemAfterSell, config: configAfterSell } = await sellToken(itemFinal, configFinal, amountUSDAfterSell)
 
             itemFinal = itemAfterSell
             configFinal = configAfterSell

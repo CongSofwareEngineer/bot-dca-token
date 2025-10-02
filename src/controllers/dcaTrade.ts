@@ -1,90 +1,19 @@
 import { Request, Response } from 'express'
 import TokenService from '@/services/token'
-import Token from '@/models/Token'
-import User, { IUser } from '@/models/User'
-import DCATrade, { IDCATrade } from '@/models/DCATrade'
-import { Token as TokenType } from '@/services/token/type'
-import { dcaV1, dcaV2 } from '@/utils/dca'
-import { isEqual } from 'lodash'
-import moment from 'moment'
+import DCATrade from '@/models/DCATrade'
+import { TOKEN } from '@/constants/token'
+import { CHAIN_ID_SUPPORT } from '@/constants/chain'
+import Pool from '@/services/pool'
+import { convertBalanceToWei, convertWeiToBalance } from '@/utils/functions'
+import { BigNumber } from 'bignumber.js'
+import { Address } from 'viem'
+import DcaTokenService from '@/services/dcaToken'
 
 export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const idETH = '1027'
-    const [token, user] = await Promise.all([
-      Token.findOne({ tokenSymbol: 'ETH' }).exec(),
-      User.findOne({ version: 1 }).exec()
 
-    ])
-
-    const lastHistory = await DCATrade.findOne({
-      idUser: user?._id?.toString() || 'default'
-    }).sort({ createdAt: -1 }).exec()
-
-    if (lastHistory) {
-      const now = moment(moment.now()).utc().valueOf()
-      const current = moment(lastHistory?.createdAt).utc().valueOf()
-      const timeValid = moment(current).add(3.5, 'hours').isBefore(now)
-
-      if (!timeValid) {
-        res.status(200).json({ success: true, data: { result: { timeValid, current, lastHistory, now } } })
-        return
-
-      }
-    }
-
-
-
-    const price = await TokenService.getPrice(token?.idBinance || idETH)
-    const item: IDCATrade = {
-      createdAt: new Date(),
-      idToken: token?._id.toString() || '',
-      price: price.price.toString()
-    }
-    const tokenConfig: TokenType = {
-      decimals: token?.decimals || 18,
-      price: price.price || 0,
-      tokenAddress: token?.tokenAddress || '',
-      tokenSymbol: token?.tokenSymbol || 'ETH'
-    }
-
-
-    const userConfig: IUser = {
-      stepSize: user?.stepSize || '10',
-      slippageTolerance: user?.slippageTolerance || 1,
-      maxPrice: user?.maxPrice || '0',
-      minPrice: user?.minPrice || '0',
-      initialCapital: user?.initialCapital || '100',
-      capital: user?.capital || '0',
-      priceBuyHistory: user?.priceBuyHistory || '0',
-      tokenInput: user?.tokenInput || 'ETH',
-      isStop: user?.isStop || false,
-      version: 1,
-
-      // Current total USD amount invested
-      amountUSDToBuy: user?.amountUSDToBuy || '0',
-      amountETHBought: user?.amountETHBought || '0',
-      // Amount in USD to buy each interval
-      ratioPriceUp: user?.ratioPriceUp || '0',
-      ratioPriceDown: user?.ratioPriceDown || '1'
-
-    }
-
-
-    const result = dcaV1(item, tokenConfig, userConfig as any)
-
-    const { item: itemResult, config: configResult } = result
-
-    if (!isEqual(configResult, userConfig)) {
-      await User.updateOne({ _id: user?._id }, { $set: configResult }).exec()
-    }
-
-    await DCATrade.create({
-      ...itemResult,
-      idUser: user?._id.toString() || 'default'
-    })
-
-    // Remove any unwanted fields from result before sending response
+    const dcaTokenService = new DcaTokenService()
+    const result = await dcaTokenService.dcaTokenV1()
 
 
     res.status(200).json({ success: true, data: { result } })
@@ -96,85 +25,139 @@ export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> =>
 
 export const dcaTokenV2 = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const idETH = '1027'
-    const [token, user] = await Promise.all([
-      Token.findOne({ tokenSymbol: 'ETH' }).exec(),
-      User.findOne({ version: 2 }).exec()
+    const dcaTokenService = new DcaTokenService()
+    const result = await dcaTokenService.dcaTokenV2()
+
+
+    res.status(200).json({ success: true, data: { result } })
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: 'Failed to get plan', error: e.message })
+  }
+}
+
+export const dcaTestPool = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const fee = 500
+    const slippage = 0.75 // 0.75%
+    const amountIn = '10'
+    const tokenETH = TOKEN[CHAIN_ID_SUPPORT[56]].ETH!
+    const tokenUSDT = TOKEN[CHAIN_ID_SUPPORT[56]].USDT!
+    let token0: {
+      address: Address
+      decimals: number
+    }
+    let token1: {
+      address: Address
+      decimals: number
+    }
+
+    const pool = new Pool()
+    const tokenService = new TokenService()
+
+    // First, get pool address to check token order
+    const poolAddress = await pool.getPoolAddress({
+      chainId: 56, // BSC
+      tokenA: tokenETH.address,
+      tokenB: tokenUSDT.address,
+      fee: 500 // or 3000, whatever fee tier exists
+    })
+
+
+    const [poolState, currentPoolPrice] = await Promise.all([
+      pool.getPoolState(poolAddress),
+      pool.getCurrentPoolPrice(poolAddress)
     ])
 
-    const lastHistory = await DCATrade.findOne({
-      idUser: user?._id?.toString() || 'default'
-    }).sort({ createdAt: -1 }).exec()
 
-    if (lastHistory) {
-      console.log({ lastHistory })
-
-      const now = moment(moment.now()).utc().valueOf()
-      const current = moment(lastHistory?.createdAt).utc().valueOf()
-      const timeValid = moment(current).add(3.9, 'hours').isBefore(now)
-      if (!timeValid) {
-        res.status(200).json({ success: true, data: { result: { timeValid, current, lastHistory, now } } })
-        return
-
+    // nếu trong pool token 0 là USDT thì đổi chỗ token0, token1
+    const isUSDTToken0 = poolState.token0.toLowerCase() === tokenUSDT.address.toLowerCase()
+    if (isUSDTToken0) {
+      token0 = {
+        address: tokenUSDT.address,
+        decimals: tokenUSDT.decimals
+      }
+      token1 = {
+        address: tokenETH.address,
+        decimals: tokenETH.decimals
+      }
+    } else {
+      token0 = {
+        address: tokenETH.address,
+        decimals: tokenETH.decimals
+      }
+      token1 = {
+        address: tokenUSDT.address,
+        decimals: tokenUSDT.decimals
       }
     }
 
 
 
-
-    const price = await TokenService.getPrice(token?.idBinance || idETH)
-    const item: IDCATrade = {
-      createdAt: new Date(),
-      idToken: token?._id.toString() || '',
-      price: price.price.toString()
-    }
-    const tokenConfig: TokenType = {
-      decimals: token?.decimals || 18,
-      price: price.price || 0,
-      tokenAddress: token?.tokenAddress || '',
-      tokenSymbol: token?.tokenSymbol || 'ETH'
-    }
-
-
-    const userConfig: IUser = {
-      stepSize: user?.stepSize || '10',
-      slippageTolerance: user?.slippageTolerance || 1,
-      maxPrice: user?.maxPrice || '0',
-      minPrice: user?.minPrice || '0',
-      initialCapital: user?.initialCapital || '100',
-      capital: user?.capital || '0',
-      priceBuyHistory: user?.priceBuyHistory || '0',
-      tokenInput: user?.tokenInput || 'ETH',
-      isStop: user?.isStop || false,
-      version: user?.version || 2,
-
-      // Current total USD amount invested
-      amountUSDToBuy: user?.amountUSDToBuy || '0',
-      amountETHBought: user?.amountETHBought || '0',
-      // Amount in USD to buy each interval
-      ratioPriceUp: user?.ratioPriceUp || '0',
-      ratioPriceDown: user?.ratioPriceDown || '1'
-
-    }
-
-
-    const result = dcaV2(item, tokenConfig, userConfig as any)
-
-    const { item: itemResult, config: configResult } = result
-
-    if (!isEqual(configResult, userConfig)) {
-      await User.updateOne({ _id: user?._id }, { $set: configResult }).exec()
-    }
-
-    await DCATrade.create({
-      ...itemResult,
-      idUser: user?._id.toString() || 'default'
+    // Calculate sqrtPriceLimitX96 for USDT → ETH swap
+    const infoSqrt = pool.calculateSqrtPriceLimitX96({
+      price: currentPoolPrice.price,
+      token0Decimals: token0.decimals,
+      token1Decimals: token1.decimals,
+      isToken0In: isUSDTToken0
     })
 
-    // Remove any unwanted fields from result before sending response
+    const quoteExactIn = await pool.getQuoteExactIn({
+      amountIn: convertBalanceToWei(amountIn), // Swap 10 USDT for testing
+      tokenIn: isUSDTToken0 ? token0.address : token1.address,
+      tokenOut: isUSDTToken0 ? token1.address : token0.address,
+      isUSDTToken0,
+      fee
+    })
+    const amountOutMinimumWei = BigNumber(quoteExactIn.amountOut).minus(BigNumber(quoteExactIn.amountOut).div(100).times(slippage))
+      .toFixed(0)
+    const amountOutMinimum = convertWeiToBalance(amountOutMinimumWei, isUSDTToken0 ? token1.decimals : token0.decimals)
+    console.log({ amountOutMinimum })
 
 
-    res.status(200).json({ success: true, data: { result } })
+    // const [balanceUSDTWei, balanceETHWei] = await Promise.all([
+    //   tokenService.getBalance(tokenUSDT.address),
+    //   tokenService.getBalance(tokenETH.address)
+    // ])
+
+    // const balanceUSDT = convertWeiToBalance(balanceUSDTWei, tokenUSDT.decimals)
+    // const balanceETH = convertWeiToBalance(balanceETHWei, tokenETH.decimals)
+
+    // Execute actual swap: USDT → ETH
+    // const swapResult = await pool.swapUSDTToWETH({
+    //   poolAddress,
+    //   usdtAddress: tokenUSDT.address,
+    //   wethAddress: tokenETH.address,
+    //   fee: 500,
+    //   amountUSDT: amountIn, // Swap 10 USDT for testing
+    //   slippageBps: 75, // 0.75% slippage (75 basis points) - optimal for DCA consistency
+    //   sqrtPriceLimitX96: infoSqrt,
+    //   isUSDTToken0,
+    //   wethDecimals: tokenETH.decimals,
+    //   usdtDecimals: tokenUSDT.decimals,
+    //   amountOutMinimum: amountOutMinimum.toString()
+    // })
+
+    res.status(200).json({
+      success: true,
+      data: {
+        infoSqrt,
+        priceETH: currentPoolPrice.price,
+        poolInfo: {
+          liquidity: poolState.liquidity.toString(),
+          tick: poolState.tick.toString(),
+          poolAddress,
+          token0: poolState.token0Symbol,
+          token1: poolState.token1Symbol,
+          isUSDTToken0,
+          token0Decimals: poolState.token0Decimals,
+          token1Decimals: poolState.token1Decimals
+        },
+        currentPoolPrice,
+        swapDirection: isUSDTToken0 ? 'USDT(token0) → ETH(token1)' : 'USDT(token1) → ETH(token0)'
+
+      }
+    })
+
   } catch (e: any) {
     res.status(500).json({ success: false, message: 'Failed to get plan', error: e.message })
   }

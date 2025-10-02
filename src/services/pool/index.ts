@@ -1,4 +1,4 @@
-import { V3_FACTORY_ABI, V3_POOL_ABI, V3_SWAP_ROUTER_ABI } from '@/abi/pool'
+import { QUOTER_V2_ABI, V3_FACTORY_ABI, V3_POOL_ABI, V3_SWAP_ROUTER_ABI } from '@/abi/pool'
 import { Address, encodeFunctionData, getAddress } from 'viem'
 import { PoolState } from './type'
 import web3 from '../web3'
@@ -7,6 +7,8 @@ import { base, bsc } from 'viem/chains'
 import { DATA_UNISWAP } from '@/constants/pool'
 import { TOKEN } from '@/constants/token'
 import { CHAIN_ID_SUPPORT } from '@/constants/chain'
+import { convertBalanceToWei } from '@/utils/functions'
+import { BigNumber } from 'bignumber.js'
 
 class Pool extends web3 {
   private getFactoryAddress(chainId: number): Address {
@@ -108,8 +110,7 @@ class Pool extends web3 {
     sqrtPriceLimitX96?: string
   }) {
     if (!this.wallet) throw new Error('Wallet not initialized')
-    const chainId = params.chainId || bsc.id
-    const router = this.getRouterAddress(chainId)
+    const router = this.getRouterAddress()
     const account = (await this.wallet.getAddresses())[0]
     const amountInWei = BigInt(params.amountIn)
     const slippageBps = params.slippageBps ?? 50
@@ -166,8 +167,7 @@ class Pool extends web3 {
     sqrtPriceLimitX96?: string
   }) {
     if (!this.wallet) throw new Error('Wallet not initialized')
-    const chainId = params.chainId || bsc.id
-    const router = this.getRouterAddress(chainId)
+    const router = this.getRouterAddress()
     const account = (await this.wallet.getAddresses())[0]
     const amountOutWei = BigInt(params.amountOut)
     const maxAmountInWei = BigInt(params.maxAmountIn)
@@ -216,7 +216,7 @@ class Pool extends web3 {
     if (!this.wallet) throw new Error('Wallet not initialized')
     const chainId = params.chainId || bsc.id
     const stableSymbol = params.stable || 'USDT'
-    const stableAddress = TOKEN[CHAIN_ID_SUPPORT.Bsc][stableSymbol].address
+    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[56]][stableSymbol]!.address
     if (!stableAddress) throw new Error(`Stable ${stableSymbol} not configured for chain ${chainId}`)
     const tokenDecimals = await this.getDecimals(params.tokenIn)
     const rawAmountIn = this.toRaw(params.amountInDecimal, tokenDecimals)
@@ -243,7 +243,7 @@ class Pool extends web3 {
     if (!this.wallet) throw new Error('Wallet not initialized')
     const chainId = params.chainId || bsc.id
     const stableSymbol = params.stable || 'USDT'
-    const stableAddress = TOKEN[CHAIN_ID_SUPPORT.Bsc][stableSymbol].address
+    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[56]][stableSymbol]!.address
     if (!stableAddress) throw new Error(`Stable ${stableSymbol} not configured for chain ${chainId}`)
     const stableDecimals = await this.getDecimals(stableAddress)
     const rawAmountIn = this.toRaw(params.amountInDecimal, stableDecimals)
@@ -258,35 +258,87 @@ class Pool extends web3 {
     })
   }
 
+  async getQuoteExactIn(params: {
+    tokenIn: string
+    tokenOut: string
+    fee: number
+    amountIn: string
+    sqrtPriceLimitX96?: string
+    isUSDTToken0?: boolean
+  }): Promise<{
+    amountOut: number
+    sqrtPriceX96After: number
+    initializedTicksCrossed: number
+    gasEstimate: number
+  }> {
+    const quoterAddress = DATA_UNISWAP[this.chainId].quoterV2
+
+    const amountInWei = BigInt(params.amountIn)
+
+    const res = await this.client.readContract({
+      address: getAddress(quoterAddress),
+      abi: QUOTER_V2_ABI,
+      functionName: params?.isUSDTToken0 ? 'quoteExactOutputSingle' : 'quoteExactInputSingle',
+      args: [{
+        tokenIn: getAddress(params.tokenIn),
+        tokenOut: getAddress(params.tokenOut),
+        amountIn: amountInWei,
+        fee: params.fee,
+        sqrtPriceLimitX96: params.sqrtPriceLimitX96 ? BigInt(params.sqrtPriceLimitX96) : 0n
+      }]
+    })
+
+    const [amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate] = res as unknown as [bigint, bigint, number, bigint]
+
+    return {
+      // res
+      amountOut: Number(amountOut),
+      sqrtPriceX96After: Number(sqrtPriceX96After),
+      initializedTicksCrossed,
+      gasEstimate: Number(gasEstimate)
+    }
+  }
+
+  // Swap USDT to WETH with slippage protection based on current pool price
+
   async swapUSDTToWETH(params: {
-    chainId?: number
     poolAddress: string
     usdtAddress: string
     wethAddress: string
     fee: number
-    amountUSDTDecimal: string
+    amountUSDT: string
     slippageBps?: number
     recipient?: string
     sqrtPriceLimitX96?: string
+    isUSDTToken0: boolean
+    usdtDecimals: number
+    wethDecimals: number
+    amountOutMinimum: string
   }) {
     if (!this.wallet) throw new Error('Wallet not initialized')
-    const chainId = params.chainId || bsc.id
-    const router = this.getRouterAddress(chainId)
+    const router = this.getRouterAddress()
     const account = (await this.wallet.getAddresses())[0]
-
-    // Get USDT decimals and convert amount to wei
-    const usdtDecimals = await this.getDecimals(params.usdtAddress)
-    const amountInWei = this.toRaw(params.amountUSDTDecimal, usdtDecimals)
-
-    // Calculate minimum amount out with slippage
+    const amountInWei = this.toRaw(params.amountUSDT, params.usdtDecimals)
     const slippageBps = params.slippageBps ?? 50 // Default 0.5% slippage
-    // For now set to 0, but you should calculate expected output first
-    const amountOutMin = 0n
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10) // 10 minutes
+    let amountOutMinimumWei = convertBalanceToWei(params.amountOutMinimum, params.wethDecimals)
+
+    amountOutMinimumWei = BigNumber(amountOutMinimumWei).multipliedBy((10000 - slippageBps) / 10000).toFixed(0)
+
+    console.log({
+      isUSDTToken0: params.isUSDTToken0,
+      tokenIn: getAddress(params.usdtAddress),
+      tokenOut: getAddress(params.wethAddress),
+      fee: params.fee,
+      recipient: params.recipient ? getAddress(params.recipient) : account,
+      deadline,
+      amountIn: amountInWei,
+      amountOutMinimumWei,
+      sqrtPriceLimitX96: params.sqrtPriceLimitX96 ? BigInt(params.sqrtPriceLimitX96) : 0n
+    })
 
     // Ensure USDT allowance for router
     await this.ensureAllowance(params.usdtAddress, account, router, amountInWei)
-
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10) // 10 minutes
 
     const calldata = encodeFunctionData({
       abi: V3_SWAP_ROUTER_ABI,
@@ -299,7 +351,7 @@ class Pool extends web3 {
           recipient: params.recipient ? getAddress(params.recipient) : account,
           deadline,
           amountIn: amountInWei,
-          amountOutMinimum: amountOutMin,
+          amountOutMinimum: BigInt(amountOutMinimumWei),
           sqrtPriceLimitX96: params.sqrtPriceLimitX96 ? BigInt(params.sqrtPriceLimitX96) : 0n
         }
       ]
@@ -308,22 +360,82 @@ class Pool extends web3 {
     const hash = await this.wallet.sendTransaction({
       chain: this.wallet.chain,
       account,
-      to: router,
+      to: router as `0x${string}`,
       value: 0n,
       data: calldata
     })
+    await this.trackingHash(hash)
 
-    return {
-      tx: hash,
-      router,
-      poolAddress: params.poolAddress,
-      amountUSDTIn: params.amountUSDTDecimal,
-      amountInWei: amountInWei.toString(),
-      amountOutMin: amountOutMin.toString(),
-      slippageBps,
+    return hash
+  }
+
+  // Swap WETH to USDT (reverse direction)
+  async swapWETHToUSDT(params: {
+    poolAddress: string
+    wethAddress: string
+    usdtAddress: string
+    fee: number
+    amountWETH: string
+    slippageBps?: number
+    recipient?: string
+    sqrtPriceLimitX96?: string
+    isWETHToken0: boolean
+    wethDecimals: number
+    usdtDecimals: number
+    amountOutMinimum: string
+  }) {
+    if (!this.wallet) throw new Error('Wallet not initialized')
+    const router = this.getRouterAddress()
+    const account = (await this.wallet.getAddresses())[0]
+    const amountInWei = this.toRaw(params.amountWETH, params.wethDecimals)
+    const slippageBps = params.slippageBps ?? 50 // Default 0.5% slippage
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10) // 10 minutes
+    let amountOutMinimumWei = convertBalanceToWei(params.amountOutMinimum, params.usdtDecimals)
+
+    amountOutMinimumWei = BigNumber(amountOutMinimumWei).multipliedBy((10000 - slippageBps) / 10000).toFixed(0)
+
+    console.log({
+      isWETHToken0: params.isWETHToken0,
+      tokenIn: getAddress(params.wethAddress),
+      tokenOut: getAddress(params.usdtAddress),
       fee: params.fee,
-      sqrtPriceLimitX96: params.sqrtPriceLimitX96 || '0'
-    }
+      recipient: params.recipient ? getAddress(params.recipient) : account,
+      deadline,
+      amountIn: amountInWei,
+      amountOutMinimumWei,
+      sqrtPriceLimitX96: params.sqrtPriceLimitX96 ? BigInt(params.sqrtPriceLimitX96) : 0n
+    })
+
+    // Ensure WETH allowance for router
+    await this.ensureAllowance(params.wethAddress, account, router, amountInWei)
+
+    const calldata = encodeFunctionData({
+      abi: V3_SWAP_ROUTER_ABI,
+      functionName: 'exactInputSingle',
+      args: [
+        {
+          tokenIn: getAddress(params.wethAddress),
+          tokenOut: getAddress(params.usdtAddress),
+          fee: params.fee,
+          recipient: params.recipient ? getAddress(params.recipient) : account,
+          deadline,
+          amountIn: amountInWei,
+          amountOutMinimum: BigInt(amountOutMinimumWei),
+          sqrtPriceLimitX96: params.sqrtPriceLimitX96 ? BigInt(params.sqrtPriceLimitX96) : 0n
+        }
+      ]
+    })
+
+    const hash = await this.wallet.sendTransaction({
+      chain: this.wallet.chain,
+      account,
+      to: router as `0x${string}`,
+      value: 0n,
+      data: calldata
+    })
+    await this.trackingHash(hash)
+
+    return hash
   }
 
   // Utility function to calculate sqrtPriceLimitX96
@@ -379,58 +491,7 @@ class Pool extends web3 {
     }
   }
 
-  // Enhanced swap function with automatic price limit calculation
-  async swapUSDTToWETHWithPriceLimit(params: {
-    chainId?: number
-    poolAddress: string
-    usdtAddress: string
-    wethAddress: string
-    fee: number//500
-    amountUSDTDecimal: string
-    maxPriceImpact?: number // percentage (e.g., 5 = 5% max impact)
-    slippageBps?: number
-    recipient?: string
-  }) {
-    if (!this.wallet) throw new Error('Wallet not initialized')
 
-    // Get current pool price
-    const currentPrice = await this.getCurrentPoolPrice(params.poolAddress)
-    console.log(`Current ${currentPrice.token0Symbol}/${currentPrice.token1Symbol} price: ${currentPrice.price}`)
-
-    // Calculate price limit with max impact
-    const maxPriceImpact = params.maxPriceImpact || 5 // Default 5%
-    const poolState = await this.getPoolState(params.poolAddress)
-
-    // Determine which token is token0 and token1
-    const isUSDTToken0 = params.usdtAddress.toLowerCase() === poolState.token0.toLowerCase()
-    let priceLimit: number
-
-    if (isUSDTToken0) {
-      // USDT is token0, WETH is token1 - selling USDT for WETH
-      // Price should not go above current price * (1 + impact)
-      priceLimit = currentPrice.price * (1 + maxPriceImpact / 100)
-    } else {
-      // WETH is token0, USDT is token1 - selling USDT for WETH  
-      // Price should not go below current price * (1 - impact)
-      priceLimit = currentPrice.price * (1 - maxPriceImpact / 100)
-    }
-
-    const sqrtPriceLimitX96 = this.calculateSqrtPriceLimitX96({
-      price: priceLimit,
-      token0Decimals: poolState.token0Decimals,
-      token1Decimals: poolState.token1Decimals,
-      isToken0In: isUSDTToken0
-    })
-
-    console.log(`Price limit set to: ${priceLimit}`)
-    console.log(`sqrtPriceLimitX96: ${sqrtPriceLimitX96}`)
-
-    // Call the original swap function with calculated price limit
-    return this.swapUSDTToWETH({
-      ...params,
-      sqrtPriceLimitX96
-    })
-  }
 
 }
 export default Pool

@@ -1,4 +1,4 @@
-import { createPublicClient, getAddress, http, PublicClient, createWalletClient, WalletClient, Hex } from 'viem'
+import { createPublicClient, getAddress, http, PublicClient, createWalletClient, WalletClient, Hex, Hash, TransactionReceipt, GetTransactionReceiptReturnType, Chain, Address } from 'viem'
 import { base, bsc } from 'viem/chains'
 import { ERC20_ABI } from '@/abi/token'
 import { DATA_UNISWAP } from '@/constants/pool'
@@ -7,12 +7,14 @@ import { CHAIN_ID_SUPPORT } from '@/constants/chain'
 class Web3Service {
   client: PublicClient
   wallet?: WalletClient
-  constructor(chainId: number = 56) {
+  chainId: number
+  constructor(chainId: number = bsc.id) {
+    this.chainId = chainId
     this.client = this.getClient(chainId)
     this.initWallet(chainId).catch(e => console.error('Init wallet error:', e))
   }
 
-  private async initWallet(chainId: number) {
+  private async initWallet(chainId: number = bsc.id): Promise<void> {
     const pk = process.env.DCA_PRIVATE_KEY
     if (!pk) return
     const accountModule = await import('viem/accounts')
@@ -28,25 +30,44 @@ class Web3Service {
 
   getClient(chainId: number): PublicClient {
     const CHAIN_SUPPORT = {
-      [bsc.id]: bsc,
+      [bsc.id]: {
+        ...bsc,
+        rpcUrls: {
+          default: { http: ['https://bsc-rpc.publicnode.com'] }
+          // default: { http: ['https://nft.keyring.app/api/quickNodeRpc?chainType=bsc'] }
+
+        }
+      },
       [base.id]: base
     }
     const chain = CHAIN_SUPPORT[chainId as keyof typeof CHAIN_SUPPORT]
 
     const client = createPublicClient({
       chain: chain,
-      transport: http(process.env.BSC_RPC_URL || chain.rpcUrls.default.http[0])
+      transport: http(chain.rpcUrls.default.http[0])
     })
     return client as unknown as PublicClient
   }
 
 
-  getRouterAddress(chainId: number) {
-    const mapping: Record<number, string> = {
-      [bsc.id]: DATA_UNISWAP[CHAIN_ID_SUPPORT.Bsc].routerAddress,
-      [base.id]: DATA_UNISWAP[CHAIN_ID_SUPPORT.Base].routerAddress
+  getRouterAddress(): Address {
+    const mapping: Record<number, Address> = {
+      [bsc.id]: DATA_UNISWAP[CHAIN_ID_SUPPORT[56]].routerAddress,
+      [base.id]: DATA_UNISWAP[CHAIN_ID_SUPPORT[8453]].routerAddress
     }
-    return getAddress(mapping[chainId])
+    return getAddress(mapping[this.chainId])
+  }
+
+  async trackingHash(txHash: Hash, timeout = 300000): Promise<void> {
+    const client = this.client
+
+    await client.waitForTransactionReceipt({
+      hash: txHash,
+      timeout,
+      retryCount: 1000,
+      confirmations: 2
+    })
+
   }
 
   async ensureAllowance(token: string, owner: string, spender: string, minAmount: bigint) {
@@ -67,21 +88,10 @@ class Web3Service {
         functionName: 'approve',
         args: [getAddress(spender), minAmount]
       })
+      await this.trackingHash(hash)
       return { approvalTx: hash }
     }
     return { approvalTx: null }
-  }
-
-
-  // ---------- High-level helpers for token <-> stable swaps ----------
-  private STABLES: Record<number, { USDT?: string; USDC?: string; BUSD?: string }> = {
-    [bsc.id]: {
-      USDT: process.env.USDT_BSC || '0x55d398326f99059fF775485246999027B3197955',
-      BUSD: process.env.BUSD_BSC || '0xe9e7cea3dedca5984780bafc599bd69add087d56'
-    },
-    [base.id]: {
-      USDC: process.env.USDC_BASE || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-    }
   }
 
   async getDecimals(token: string): Promise<number> {

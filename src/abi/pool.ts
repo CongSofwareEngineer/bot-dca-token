@@ -104,3 +104,93 @@ export const V3_SWAP_ROUTER_ABI = [
     outputs: [{ name: 'amountIn', type: 'uint256' }]
   }
 ] as const
+
+
+export const QUOTER_V2_ABI = [
+  {
+    name: 'quoteExactInputSingle',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      {
+        components: [
+          { name: 'tokenIn', type: 'address', internalType: 'address' },
+          { name: 'tokenOut', type: 'address', internalType: 'address' },
+          { name: 'amountIn', type: 'uint256', internalType: 'uint256' },
+          { name: 'fee', type: 'uint24', internalType: 'uint24' },
+          { name: 'sqrtPriceLimitX96', type: 'uint160', internalType: 'uint160' }
+        ],
+        name: 'params',
+        type: 'tuple',
+        internalType: 'struct IQuoterV2.QuoteExactInputSingleParams'
+      }
+    ],
+    outputs: [
+      { name: 'amountOut', type: 'uint256', internalType: 'uint256' },
+      { name: 'sqrtPriceX96After', type: 'uint160', internalType: 'uint160' },
+      { name: 'initializedTicksCrossed', type: 'uint32', internalType: 'uint32' },
+      { name: 'gasEstimate', type: 'uint256', internalType: 'uint256' }
+    ]
+  },
+  {
+    'inputs': [
+      {
+        'components': [
+          {
+            'internalType': 'address',
+            'name': 'tokenIn',
+            'type': 'address'
+          },
+          {
+            'internalType': 'address',
+            'name': 'tokenOut',
+            'type': 'address'
+          },
+          {
+            'internalType': 'uint256',
+            'name': 'amount',
+            'type': 'uint256'
+          },
+          {
+            'internalType': 'uint24',
+            'name': 'fee',
+            'type': 'uint24'
+          },
+          {
+            'internalType': 'uint160',
+            'name': 'sqrtPriceLimitX96',
+            'type': 'uint160'
+          }
+        ],
+        'internalType': 'struct IQuoterV2.QuoteExactOutputSingleParams',
+        'name': 'params',
+        'type': 'tuple'
+      }
+    ],
+    'name': 'quoteExactOutputSingle',
+    'outputs': [
+      {
+        'internalType': 'uint256',
+        'name': 'amountIn',
+        'type': 'uint256'
+      },
+      {
+        'internalType': 'uint160',
+        'name': 'sqrtPriceX96After',
+        'type': 'uint160'
+      },
+      {
+        'internalType': 'uint32',
+        'name': 'initializedTicksCrossed',
+        'type': 'uint32'
+      },
+      {
+        'internalType': 'uint256',
+        'name': 'gasEstimate',
+        'type': 'uint256'
+      }
+    ],
+    'stateMutability': 'nonpayable',
+    'type': 'function'
+  }
+] as const
