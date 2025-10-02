@@ -80,7 +80,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
     //quy đổi sang ETH với trượt giá
     amountETHToBuy = BigNumber(amountUSDToBuy)
       .dividedBy(token.price)
-      .multipliedBy(BigNumber(100 - configFinal.slippageTolerance).dividedBy(100))
+      .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
       .toFixed()
 
     //mua lần đầu tiên
@@ -94,7 +94,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         amountUSDToBuy = BigNumber(configFinal.capital).minus(configFinal.amountUSDToBuy).toFixed()
         amountETHToBuy = BigNumber(amountUSDToBuy)
           .dividedBy(token.price)
-          .multipliedBy(BigNumber(100 - configFinal.slippageTolerance).dividedBy(100))
+          .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
           .toFixed()
 
         isStop = true
@@ -171,7 +171,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
     //quy đổi sang ETH với trượt giá
     amountETHToBuy = BigNumber(amountUSDToBuy)
       .dividedBy(token.price)
-      .multipliedBy(BigNumber(100 - configFinal.slippageTolerance).dividedBy(100))
+      .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
       .toFixed()
 
 
@@ -192,7 +192,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
       //quy đổi sang ETH với trượt giá
       amountETHToBuy = BigNumber(amountUSDToBuy)
         .dividedBy(token.price)
-        .multipliedBy(BigNumber(100 - configFinal.slippageTolerance).dividedBy(100))
+        .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
         .toFixed()
 
       //nếu số tiền mua > số tiền còn lại thì mua hết số tiền còn lại và dừng dca
@@ -200,7 +200,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         amountUSDToBuy = BigNumber(configFinal.capital).minus(configFinal.amountUSDToBuy).toFixed()
         amountETHToBuy = BigNumber(amountUSDToBuy)
           .dividedBy(token.price)
-          .multipliedBy(BigNumber(100 - configFinal.slippageTolerance).dividedBy(100))
+          .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
           .toFixed()
 
         isStop = true

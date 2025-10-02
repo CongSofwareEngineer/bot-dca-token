@@ -167,11 +167,11 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 description: Maximum amount to invest per trade in USD
  *                 example: "50"
  *               slippageTolerance:
- *                 type: number
+ *                 type: string
  *                 description: Acceptable slippage percentage
  *                 minimum: 0
  *                 maximum: 100
- *                 example: 1
+ *                 example: "1"
  *               maxPrice:
  *                 type: string
  *                 description: Upper price limit for token purchase
@@ -286,11 +286,11 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 description: Maximum amount to invest per trade in USD
  *                 example: "50"
  *               slippageTolerance:
- *                 type: number
+ *                 type: string
  *                 description: Acceptable slippage percentage
  *                 minimum: 0
  *                 maximum: 100
- *                 example: 1
+ *                 example: "1"
  *               maxPrice:
  *                 type: string
  *                 description: Upper price limit for token purchase
