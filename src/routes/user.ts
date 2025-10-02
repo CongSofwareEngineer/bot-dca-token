@@ -224,6 +224,10 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 type: string
  *                 description: Take profit percentage to sell
  *                 example: "5"
+ *               ratioPriceByHistory:
+ *                type: string
+ *                description: Price drop ratio based on history
+ *                example: "1"
  *     responses:
  *       200:
  *         description: User configuration created successfully
@@ -343,6 +347,10 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 type: string
  *                 description: Take profit percentage to sell
  *                 example: "5"
+ *               ratioPriceByHistory:
+ *                type: string
+ *                description: Price drop ratio based on history
+ *                example: "1"
  *     responses:
  *       200:
  *         description: User configuration updated successfully

@@ -18,6 +18,7 @@ export interface IUser {
   amountETHBought: string
   version: number
   ratioProfitToSell?: string
+  ratioPriceByHistory?: string
 }
 
 const UserSchema: Schema = new Schema(
@@ -94,6 +95,11 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true,
       default: '5'
+    },
+    ratioPriceByHistory: {
+      type: String,
+      trim: true,
+      default: '1'
     }
   },
   {

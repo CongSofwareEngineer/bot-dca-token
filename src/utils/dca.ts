@@ -105,7 +105,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         configFinal = configAfterBuy
       } else {
         if (BigNumber(token.price).isLessThanOrEqualTo(configFinal.priceBuyHistory)) {
-          if (ratePriceDrop >= BigNumber(configFinal.ratioPriceDown || 1).dividedBy(100).toNumber()) {
+          if (ratePriceDrop >= BigNumber(configFinal.ratioPriceByHistory || 1).dividedBy(100).toNumber()) {
             const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
@@ -115,7 +115,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
           const priceAverage = BigNumber(configFinal.amountUSDToBuy).dividedBy(configFinal.amountETHBought).toString()
           const ratioPriceDrop = BigNumber(priceAverage).minus(token.price).dividedBy(priceAverage).abs().toNumber()
 
-          if (BigNumber(token.price).isLessThan(priceAverage) && ratioPriceDrop >= BigNumber(configFinal.ratioPriceUp || 3).dividedBy(100).toNumber()) {
+          if (BigNumber(token.price).isLessThan(priceAverage) && ratioPriceDrop >= BigNumber(configFinal.ratioPriceByHistory || 3).dividedBy(100).toNumber()) {
             const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
             itemFinal = itemAfterBuy
