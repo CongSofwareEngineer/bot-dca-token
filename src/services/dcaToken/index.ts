@@ -69,7 +69,7 @@ class DcaTokenService {
     const idETH = '1027'
     const [token, user] = await Promise.all([
       Token.findOne({ tokenSymbol: 'ETH' }).exec(),
-      User.findOne({ version: 1 }).exec()
+      User.findOne({ version: 2 }).exec()
 
     ])
 
