@@ -1,11 +1,21 @@
 import express from 'express'
-import { dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, dcaTestPool } from '@/controllers/dcaTrade'
+import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, dcaTestPool } from '@/controllers/dcaTrade'
 
 /**
  * @swagger
  * tags:
  *   name: DCA-Strategy
  *   description: Strategy-based ETH DCA endpoints
+ */
+/**
+ * @swagger
+ * /api/dca/execute:
+ *   get:
+ *     summary: Get current DCA plan
+ *     tags: [DCA-Strategy]
+ *     responses:
+ *       200:
+ *         description: Plan details
  */
 /**
  * @swagger
@@ -267,9 +277,14 @@ import { dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllD
 
 const router = express.Router()
 
-// No auth required
+// Unified DCA endpoint
+router.get('/execute', dcaToken)
+
+// Legacy endpoints (deprecated but kept for backwards compatibility)
 router.get('/dca-v1', dcaTokenV1)
 router.get('/dca-v2', dcaTokenV2)
+
+// Other endpoints
 router.get('/dca-test-pool', dcaTestPool)
 router.get('/dca-history', getDCAHistory)
 router.get('/dca-history/:idUser', getDCAHistoryByUserId)

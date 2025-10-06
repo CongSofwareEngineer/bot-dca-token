@@ -9,6 +9,29 @@ import { BigNumber } from 'bignumber.js'
 import { Address } from 'viem'
 import DcaTokenService from '@/services/dcaToken'
 
+export const dcaToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const dcaTokenService = new DcaTokenService()
+    const result = await dcaTokenService.executeDCA()
+
+    // Determine response message
+    const message = 'DCA executed successfully'
+
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: { result }
+    })
+  } catch (e: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute DCA',
+      error: e.message
+    })
+  }
+}
+
 export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> => {
   try {
 
