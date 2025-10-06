@@ -4,7 +4,7 @@ export const ping = async (_req: Request, res: Response): Promise<void> => {
   try {
     const uptime = process.uptime()
     const timestamp = new Date().toISOString()
-    
+
     res.status(200).json({
       success: true,
       message: 'Server is alive',
