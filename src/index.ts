@@ -9,6 +9,7 @@ import { errorHandler } from '@/middleware/auth'
 
 import dcaTradeRoutes from '@/routes/dcaTrade'
 import userRoutes from '@/routes/user'
+import healthRoutes from '@/routes/health'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './config/swagger'
 
@@ -61,7 +62,10 @@ class App {
   }
 
   private initializeRoutes(): void {
-    // Health check endpoint
+    // Health check endpoints (new detailed endpoints)
+    this.app.use('/api', healthRoutes)
+
+    // Legacy health check endpoint (keep for backwards compatibility)
     this.app.get('/health', (req: Request, res: Response) => {
       res.status(200).json({
         success: true,
