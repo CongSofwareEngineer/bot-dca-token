@@ -274,3 +274,49 @@ export const clearAllDCAHistory = async (_req: Request, res: Response): Promise<
   }
 }
 
+export const clearDCAHistoryByUserId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { idUser } = req.params
+
+    // Validate idUser parameter
+    if (!idUser) {
+      res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      })
+      return
+    }
+
+    // Count documents before deletion for confirmation
+    const countBeforeDeletion = await DCATrade.countDocuments({ idUser })
+
+    if (countBeforeDeletion === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'No DCA history found for this user'
+      })
+      return
+    }
+
+    // Delete all DCA history for the specific user
+    const result = await DCATrade.deleteMany({ idUser })
+
+    res.status(200).json({
+      success: true,
+      message: `DCA history cleared successfully for user ${idUser}`,
+      data: {
+        idUser,
+        deletedCount: result.deletedCount,
+        confirmedCount: countBeforeDeletion
+      }
+    })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear DCA history by user ID',
+      error: errorMessage
+    })
+  }
+}
+

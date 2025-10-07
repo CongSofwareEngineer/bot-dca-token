@@ -61,6 +61,8 @@ class DcaTokenService {
       if (!timeValid) {
         isCheckV1 = false
       }
+    } else {
+      isCheckV1 = true
     }
 
 
@@ -75,6 +77,8 @@ class DcaTokenService {
       if (!timeValid) {
         isCheckV2 = false
       }
+    } else {
+      isCheckV2 = true
     }
 
     console.log({ isCheckV1, isCheckV2, lastHistoryV1, lastHistoryV2, tokenDataAndPrice })

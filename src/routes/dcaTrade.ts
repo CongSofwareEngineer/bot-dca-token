@@ -1,5 +1,5 @@
 import express from 'express'
-import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, dcaTestPool } from '@/controllers/dcaTrade'
+import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, clearDCAHistoryByUserId, dcaTestPool } from '@/controllers/dcaTrade'
 
 /**
  * @swagger
@@ -232,6 +232,92 @@ import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId,
  *                   type: string
  *                   example: "Error message"
  */
+/**
+ * @swagger
+ * /api/dca/dca-history/clear/{idUser}:
+ *   delete:
+ *     summary: Clear DCA history by user ID
+ *     tags: [DCA-Strategy]
+ *     description: Delete all DCA trade records for a specific user. This action is irreversible.
+ *     parameters:
+ *       - in: path
+ *         name: idUser
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to clear DCA history for
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: DCA history cleared successfully for the user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "DCA history cleared successfully for user 507f1f77bcf86cd799439011"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idUser:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439011"
+ *                     deletedCount:
+ *                       type: integer
+ *                       description: Number of records actually deleted
+ *                       example: 25
+ *                     confirmedCount:
+ *                       type: integer
+ *                       description: Number of records found before deletion
+ *                       example: 25
+ *       400:
+ *         description: Bad request - User ID is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User ID is required"
+ *       404:
+ *         description: No DCA history found for this user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "No DCA history found for this user"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to clear DCA history by user ID"
+ *                 error:
+ *                   type: string
+ *                   example: "Error message"
+ */
 
 
 // /**
@@ -289,6 +375,7 @@ router.get('/dca-test-pool', dcaTestPool)
 router.get('/dca-history', getDCAHistory)
 router.get('/dca-history/:idUser', getDCAHistoryByUserId)
 router.delete('/dca-history/clear-all', clearAllDCAHistory)
+router.delete('/dca-history/clear/:idUser', clearDCAHistoryByUserId)
 
 
 export default router
