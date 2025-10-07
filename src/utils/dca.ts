@@ -64,7 +64,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
   let isFirstBuy = false
 
   //nếu giá hiện tại < giá mua lần trước và <= giá max để dca thì mua
-  if (BigNumber(token.price).isLessThan(configFinal.maxPrice)) {
+  if (BigNumber(token.price).isLessThan(configFinal.maxPrice) && !configFinal.isStop) {
     if (!configFinal.priceBuyHistory || BigNumber(configFinal.priceBuyHistory).isEqualTo(0)) {
       configFinal.priceBuyHistory = token.price.toString()
       isFirstBuy = true
@@ -156,7 +156,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
 
   //lấy token cần mua
 
-  if (BigNumber(token.price).isLessThan(configFinal.maxPrice)) {
+  if (BigNumber(token.price).isLessThan(configFinal.maxPrice) && !configFinal.isStop) {
     if (!configFinal.priceBuyHistory || BigNumber(configFinal.priceBuyHistory).isEqualTo(0)) {
       configFinal.priceBuyHistory = token.price.toString()
       isFirstBuy = true

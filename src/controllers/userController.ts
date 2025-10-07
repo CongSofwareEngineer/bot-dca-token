@@ -122,7 +122,7 @@ export const deleteUserById = async (req: AuthRequest, res: Response): Promise<v
 
     // Check if user exists before deletion
     const existingUser = await User.findById(id).lean()
-    
+
     if (!existingUser) {
       res.status(404).json({
         success: false,
@@ -136,7 +136,7 @@ export const deleteUserById = async (req: AuthRequest, res: Response): Promise<v
 
     res.status(200).json({
       success: true,
-      message: `User deleted successfully`,
+      message: 'User deleted successfully',
       data: {
         deletedUser: {
           id: result?._id,
