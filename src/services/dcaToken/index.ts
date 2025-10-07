@@ -55,7 +55,7 @@ class DcaTokenService {
       const now = moment(moment.now()).utc().valueOf()
       const current = moment(lastHistoryV1?.createdAt).utc().valueOf()
       // Different time intervals for different versions
-      const timeInterval = 3.5 // v1: 3.5h
+      const timeInterval = 3.9 // v1: 3.5h
       const timeValid = moment(current).add(timeInterval, 'hours').isBefore(now)
 
       if (!timeValid) {
