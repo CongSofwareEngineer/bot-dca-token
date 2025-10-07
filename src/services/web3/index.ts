@@ -106,6 +106,22 @@ class Web3Service {
     return BigInt(whole + fracPadded)
   }
 
+  fromRaw(amountWei: bigint, decimals: number): string {
+    const amountStr = amountWei.toString()
+    const wholeLength = amountStr.length - decimals
+
+    if (wholeLength <= 0) {
+      const fractional = amountStr.padStart(decimals, '0')
+      return '0.' + fractional.replace(/0+$/, '') || '0'
+    }
+
+    const whole = amountStr.slice(0, wholeLength)
+    const frac = amountStr.slice(wholeLength)
+    const fracTrimmed = frac.replace(/0+$/, '')
+
+    return fracTrimmed ? `${whole}.${fracTrimmed}` : whole
+  }
+
 
 }
 

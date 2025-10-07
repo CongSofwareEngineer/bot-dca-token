@@ -2,7 +2,7 @@ import { QUOTER_V2_ABI, V3_FACTORY_ABI, V3_POOL_ABI, V3_SWAP_ROUTER_ABI } from '
 import { Address, encodeFunctionData, getAddress } from 'viem'
 import { PoolState } from './type'
 import web3 from '../web3'
-import { ERC20_METADATA_ABI } from '@/abi/token'
+import { ERC20_METADATA_ABI, WETH_ABI } from '@/abi/token'
 import { base, bsc } from 'viem/chains'
 import { DATA_UNISWAP } from '@/constants/pool'
 import { TOKEN } from '@/constants/token'
@@ -491,6 +491,165 @@ class Pool extends web3 {
       price: adjustedPrice,
       sqrtPriceX96: sqrtPriceX96.toString()
 
+    }
+  }
+
+  // Unwrap WETH to native ETH
+  async unwrapWETHToETH(params: {
+    wethAddress: string
+    amountWETH: string // Amount in decimal format (e.g., "1.5")
+    recipient?: string
+  }) {
+    if (!this.wallet) throw new Error('Wallet not initialized')
+
+    const account = (await this.wallet.getAddresses())[0]
+    const wethDecimals = await this.getDecimals(params.wethAddress)
+    const amountInWei = this.toRaw(params.amountWETH, wethDecimals)
+
+    // Check WETH balance
+    const wethBalance = await this.client.readContract({
+      address: getAddress(params.wethAddress),
+      abi: WETH_ABI,
+      functionName: 'balanceOf',
+      args: [account]
+    }) as bigint
+
+    if (wethBalance < amountInWei) {
+      throw new Error(`Insufficient WETH balance. Have: ${this.fromRaw(wethBalance, wethDecimals)}, Need: ${params.amountWETH}`)
+    }
+
+    // Call withdraw function on WETH contract
+    const calldata = encodeFunctionData({
+      abi: WETH_ABI,
+      functionName: 'withdraw',
+      args: [amountInWei]
+    })
+
+    const hash = await this.wallet.sendTransaction({
+      chain: this.wallet.chain,
+      account,
+      to: getAddress(params.wethAddress),
+      value: 0n,
+      data: calldata
+    })
+
+    await this.trackingHash(hash)
+
+    return {
+      tx: hash,
+      wethAddress: params.wethAddress,
+      amountWETH: params.amountWETH,
+      amountWETHWei: amountInWei.toString(),
+      recipient: params.recipient || account,
+      message: `Successfully unwrapped ${params.amountWETH} WETH to ETH`
+    }
+  }
+
+  // Wrap native ETH to WETH
+  async wrapETHToWETH(params: {
+    wethAddress: string
+    amountETH: string // Amount in decimal format (e.g., "1.5")
+  }) {
+    if (!this.wallet) throw new Error('Wallet not initialized')
+
+    const account = (await this.wallet.getAddresses())[0]
+    const wethDecimals = await this.getDecimals(params.wethAddress)
+    const amountInWei = this.toRaw(params.amountETH, wethDecimals)
+
+    // Check ETH balance
+    const ethBalance = await this.client.getBalance({ address: account })
+
+    if (ethBalance < amountInWei) {
+      throw new Error(`Insufficient ETH balance. Have: ${this.fromRaw(ethBalance, 18)}, Need: ${params.amountETH}`)
+    }
+
+    // Call deposit function on WETH contract (payable)
+    const calldata = encodeFunctionData({
+      abi: WETH_ABI,
+      functionName: 'deposit',
+      args: []
+    })
+
+    const hash = await this.wallet.sendTransaction({
+      chain: this.wallet.chain,
+      account,
+      to: getAddress(params.wethAddress),
+      value: amountInWei,
+      data: calldata
+    })
+
+    await this.trackingHash(hash)
+
+    return {
+      tx: hash,
+      wethAddress: params.wethAddress,
+      amountETH: params.amountETH,
+      amountETHWei: amountInWei.toString(),
+      message: `Successfully wrapped ${params.amountETH} ETH to WETH`
+    }
+  }
+
+  // Complete flow: Swap USDT → WETH → ETH
+  async swapUSDTToETH(params: {
+    poolAddress: string
+    usdtAddress: string
+    wethAddress: string
+    fee: number
+    amountUSDT: string
+    slippageBps?: number
+    sqrtPriceLimitX96?: string
+    isUSDTToken0: boolean
+    usdtDecimals: number
+    wethDecimals: number
+    amountOutMinimum: string
+    unwrapToETH?: boolean // Option to unwrap WETH to ETH after swap
+  }) {
+    // Step 1: Swap USDT → WETH
+    const swapResult = await this.swapUSDTToWETH({
+      poolAddress: params.poolAddress,
+      usdtAddress: params.usdtAddress,
+      wethAddress: params.wethAddress,
+      fee: params.fee,
+      amountUSDT: params.amountUSDT,
+      slippageBps: params.slippageBps,
+      sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+      isUSDTToken0: params.isUSDTToken0,
+      wethDecimals: params.wethDecimals,
+      usdtDecimals: params.usdtDecimals,
+      amountOutMinimum: params.amountOutMinimum
+    })
+
+    let unwrapResult = null
+
+    // Step 2: Optionally unwrap WETH → ETH
+    if (params.unwrapToETH) {
+      // Get WETH balance to unwrap
+      if (!this.wallet) throw new Error('Wallet not initialized')
+      const account = (await this.wallet.getAddresses())[0]
+      const wethBalance = await this.client.readContract({
+        address: getAddress(params.wethAddress),
+        abi: WETH_ABI,
+        functionName: 'balanceOf',
+        args: [account]
+      }) as bigint
+
+      const wethBalanceDecimal = this.fromRaw(wethBalance, params.wethDecimals)
+
+      if (wethBalance > 0n) {
+        unwrapResult = await this.unwrapWETHToETH({
+          wethAddress: params.wethAddress,
+          amountWETH: wethBalanceDecimal
+        })
+      }
+    }
+
+    return {
+      swapTx: swapResult,
+      unwrapTx: unwrapResult,
+      finalToken: params.unwrapToETH ? 'ETH' : 'WETH',
+      message: params.unwrapToETH
+        ? `Successfully swapped ${params.amountUSDT} USDT to ETH`
+        : `Successfully swapped ${params.amountUSDT} USDT to WETH`
     }
   }
 

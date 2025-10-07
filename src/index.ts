@@ -10,6 +10,7 @@ import { errorHandler } from '@/middleware/auth'
 import dcaTradeRoutes from '@/routes/dcaTrade'
 import userRoutes from '@/routes/user'
 import healthRoutes from '@/routes/health'
+import wethRoutes from '@/routes/weth'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './config/swagger'
 
@@ -81,6 +82,7 @@ class App {
     // this.app.use('/api/dca', dcaRoutes) // Generic DCA routes - no auth required
     this.app.use('/api/dca', dcaTradeRoutes) // Strategy-based ETH DCA
     this.app.use('/api/user', userRoutes) // User configuration routes
+    this.app.use('/api/weth', wethRoutes) // WETH wrap/unwrap routes
 
     // Swagger documentation
     this.app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
