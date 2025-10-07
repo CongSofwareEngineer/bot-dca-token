@@ -149,7 +149,7 @@ export const dcaV1 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
 export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) => {
   let itemFinal = deepClone(item as IDCATrade)
   let configFinal = deepClone(userConfig as IUser)
-  let isStop = false
+  const isStop = false
   let amountETHToBuy = '0'
   let amountUSDToBuy = '0'
   let isFirstBuy = false
@@ -182,70 +182,72 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
       itemFinal = itemAfterBuy
       configFinal = configAfterBuy
     } else {
-      //tính % giá giảm
-      const ratePriceDropByRangeConfig = getRatePriceDrop(token.price, configFinal.minPrice, configFinal.maxPrice)
-      const ratePriceDrop = BigNumber(BigNumber(token.price).minus(configFinal.priceBuyHistory).dividedBy(configFinal.priceBuyHistory)).abs().toNumber()
 
-      //số tiền usd mua theo % giá giảm
-      amountUSDToBuy = BigNumber(ratePriceDropByRangeConfig).multipliedBy(configFinal.stepSize).toFixed()
-
-      //quy đổi sang ETH với trượt giá
-      amountETHToBuy = BigNumber(amountUSDToBuy)
-        .dividedBy(token.price)
-        .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
-        .toFixed()
-
-      //nếu số tiền mua > số tiền còn lại thì mua hết số tiền còn lại và dừng dca
-      if (BigNumber(configFinal.capital).isLessThan(configFinal.amountUSDToBuy)) {
-        amountUSDToBuy = BigNumber(configFinal.capital).minus(configFinal.amountUSDToBuy).toFixed()
-        amountETHToBuy = BigNumber(amountUSDToBuy)
-          .dividedBy(token.price)
-          .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
-          .toFixed()
-
-        isStop = true
-
+      if (BigNumber(token.price).isLessThan(configFinal.priceBuyHistory)) {
         const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
         itemFinal = itemAfterBuy
         configFinal = configAfterBuy
-      } else {
-        if (BigNumber(token.price).isLessThanOrEqualTo(configFinal.priceBuyHistory)) {
-          if (ratePriceDrop >= BigNumber(configFinal.ratioPriceDown || 1).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+      }
 
-            itemFinal = itemAfterBuy
-            configFinal = configAfterBuy
+      if (BigNumber(token.price).gt(configFinal.priceBuyHistory)) {
+        let priceAverage = '0'
+
+        //nếu đã mua ETh thì mới tính giá trung bình
+        if (BigNumber(configFinal.amountETHBought).gt(0)) {
+          priceAverage = BigNumber(configFinal.amountUSDToBuy).dividedBy(configFinal.amountETHBought).toFixed()
+        }
+
+        if (BigNumber(token.price).isLessThan(priceAverage)) {
+          const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+
+          itemFinal = itemAfterBuy
+          configFinal = configAfterBuy
+        }
+
+        if (BigNumber(token.price).gt(priceAverage) && BigNumber(priceAverage).gt(0)) {
+          const ratioPriceUp = BigNumber(1).minus(ratePriceDropByRangeConfig).toFixed()
+          let amountUSDToSell = BigNumber(ratioPriceUp).multipliedBy(configFinal.stepSize).toFixed()
+          let amountETHToSell = BigNumber(amountUSDToSell).dividedBy(token.price).toFixed()
+
+          if (BigNumber(configFinal.amountETHBought).isLessThanOrEqualTo(BigNumber(amountETHToSell).plus(configFinal.amountUSDToBuy || 0))) {
+            amountETHToSell = configFinal.amountETHBought
           }
-        } else {
-          const priceAverage = BigNumber(configFinal.amountUSDToBuy).dividedBy(configFinal.amountETHBought).toString()
-          const ratioPriceDrop = BigNumber(priceAverage).minus(token.price).dividedBy(priceAverage).abs().toNumber()
 
-          //nếu giá token nhỏ hơn giá trung bình
-          if (BigNumber(token.price).isLessThan(priceAverage) && ratioPriceDrop >= BigNumber(configFinal.ratioPriceUp || 3).dividedBy(100).toNumber()) {
-            const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+          amountUSDToSell = BigNumber(amountETHToSell)
+            .multipliedBy(token.price)
+            .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
+            .toFixed()
 
-            itemFinal = itemAfterBuy
-            configFinal = configAfterBuy
+          configFinal.initialCapital = BigNumber(configFinal.initialCapital || 0)
+            .plus(amountUSDToSell)
+            .toFixed()
+
+          configFinal.amountETHBought = BigNumber(configFinal.amountETHBought || 0)
+            .minus(amountETHToSell)
+            .toFixed()
+
+          configFinal.amountUSDToBuy = BigNumber(configFinal.amountUSDToBuy || 0)
+            .minus(amountUSDToSell)
+            .toFixed()
+
+          itemFinal.isSell = true
+          itemFinal.infoSwap = {
+            from: 'ETH',
+            to: 'USDT',
+            amountIn: Number(amountETHToSell),
+            amountOut: Number(amountUSDToSell)
           }
 
-          //nếu giá token lớn hơn giá trung bình
-          if (BigNumber(token.price).isGreaterThan(priceAverage) && ratioPriceDrop >= 0.1) {
-            const amountUSDAfterSell = BigNumber(configFinal.amountETHBought || 0)
-              .multipliedBy(token.price)
-              .multipliedBy(BigNumber(1).minus(BigNumber(configFinal.slippageTolerance).dividedBy(100)))
-              .toFixed()
 
 
-            const { item: itemAfterSell, config: configAfterSell } = await sellToken(itemFinal, configFinal, amountUSDAfterSell)
-
-            itemFinal = itemAfterSell
-            configFinal = configAfterSell
-          }
         }
       }
 
     }
+
+
+
     configFinal.priceBuyHistory = token.price.toString()
 
   }
@@ -259,16 +261,10 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
     }
   }
 
-  if (itemFinal?.isSell) {
-    itemFinal.infoSwap = {
-      from: 'ETH',
-      to: 'USDT',
-      amountIn: Number(amountETHToBuy),
-      amountOut: Number(amountUSDToBuy)
-    }
-  }
+
 
 
 
   return { item: itemFinal, config: configFinal, isStop }
 }
+
