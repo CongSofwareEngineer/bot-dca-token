@@ -193,10 +193,14 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
       if (BigNumber(token.price).gt(configFinal.priceBuyHistory)) {
         let priceAverage = '0'
 
+
         //nếu đã mua ETh thì mới tính giá trung bình
         if (BigNumber(configFinal.amountETHBought).gt(0)) {
+
           priceAverage = BigNumber(configFinal.amountUSDToBuy).dividedBy(configFinal.amountETHBought).toFixed()
         }
+
+
 
         if (BigNumber(token.price).isLessThan(priceAverage)) {
           const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
@@ -206,6 +210,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         }
 
         if (BigNumber(token.price).gt(priceAverage) && BigNumber(priceAverage).gt(0)) {
+
           const ratioPriceUp = BigNumber(1).minus(ratePriceDropByRangeConfig).toFixed()
           let amountUSDToSell = BigNumber(ratioPriceUp).multipliedBy(configFinal.stepSize).toFixed()
           let amountETHToSell = BigNumber(amountUSDToSell).dividedBy(token.price).toFixed()
@@ -214,10 +219,15 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
             amountETHToSell = configFinal.amountETHBought
           }
 
+
+
           amountUSDToSell = BigNumber(amountETHToSell)
             .multipliedBy(token.price)
             .multipliedBy(BigNumber(100 - Number(configFinal.slippageTolerance)).dividedBy(100))
             .toFixed()
+
+
+
 
           configFinal.initialCapital = BigNumber(configFinal.initialCapital || 0)
             .plus(amountUSDToSell)

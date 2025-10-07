@@ -104,6 +104,8 @@ class DcaTokenService {
 
       const { item: itemResult, config: configResult } = result
 
+      // console.log({ itemResult, configResult })
+
       if (!isEqual(configResult, userV2)) {
         await User.updateOne({ _id: userV2?._id }, { $set: configResult }).exec()
       }
