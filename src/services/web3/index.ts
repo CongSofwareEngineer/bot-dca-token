@@ -1,45 +1,36 @@
-import { createPublicClient, getAddress, http, PublicClient, createWalletClient, WalletClient, Hex, Hash, TransactionReceipt, GetTransactionReceiptReturnType, Chain, Address } from 'viem'
+import { createPublicClient, getAddress, http, PublicClient, createWalletClient, WalletClient, Hex, Hash, Chain, Address, PrivateKeyAccount } from 'viem'
 import { base, bsc } from 'viem/chains'
 import { ERC20_ABI } from '@/abi/token'
 import { DATA_UNISWAP } from '@/constants/pool'
-import { CHAIN_ID_SUPPORT } from '@/constants/chain'
+import { CHAIN_ID_SUPPORT, CHAIN_SUPPORT } from '@/constants/chain'
+import { privateKeyToAccount } from 'viem/accounts'
 
 class Web3Service {
   client: PublicClient
   wallet?: WalletClient
   chainId: number
+  account?: PrivateKeyAccount
+
   constructor(chainId: number = bsc.id) {
     this.chainId = chainId
     this.client = this.getClient(chainId)
     this.initWallet(chainId).catch(e => console.error('Init wallet error:', e))
   }
 
-  private async initWallet(chainId: number = bsc.id): Promise<void> {
+  async initWallet(chainId: number = bsc.id): Promise<void> {
     const pk = process.env.DCA_PRIVATE_KEY
-    if (!pk) return
-    const accountModule = await import('viem/accounts')
-    const account = accountModule.privateKeyToAccount(pk as Hex)
-    const CHAIN_SUPPORT = { [bsc.id]: bsc, [base.id]: base }
+
+    this.account = privateKeyToAccount(pk as Hex)
     const chain = CHAIN_SUPPORT[chainId as keyof typeof CHAIN_SUPPORT]
     this.wallet = createWalletClient({
       chain,
-      account,
+      account: this.account,
       transport: http(process.env.BSC_RPC_URL || chain.rpcUrls.default.http[0])
     })
   }
 
   getClient(chainId: number): PublicClient {
-    const CHAIN_SUPPORT = {
-      [bsc.id]: {
-        ...bsc,
-        rpcUrls: {
-          default: { http: ['https://bsc-rpc.publicnode.com'] }
-          // default: { http: ['https://nft.keyring.app/api/quickNodeRpc?chainType=bsc'] }
 
-        }
-      },
-      [base.id]: base
-    }
     const chain = CHAIN_SUPPORT[chainId as keyof typeof CHAIN_SUPPORT]
 
     const client = createPublicClient({
@@ -71,15 +62,18 @@ class Web3Service {
   }
 
   async ensureAllowance(token: string, owner: string, spender: string, minAmount: bigint) {
+
     const allowance = await this.client.readContract({
       address: getAddress(token),
       abi: ERC20_ABI,
       functionName: 'allowance',
       args: [owner as `0x${string}`, spender as `0x${string}`]
     }) as bigint
+
     if (allowance < minAmount) {
       if (!this.wallet) throw new Error('Wallet not initialized for approvals')
-      const account = (await this.wallet.getAddresses())[0]
+      const account = this.account?.address as Address
+
       const hash = await this.wallet.writeContract({
         chain: this.wallet.chain,
         account,

@@ -6,8 +6,10 @@ import { CHAIN_ID_SUPPORT } from '@/constants/chain'
 import Pool from '@/services/pool'
 import { convertBalanceToWei, convertWeiToBalance } from '@/utils/functions'
 import { BigNumber } from 'bignumber.js'
-import { Address } from 'viem'
+import { Address, stringToHex, zeroAddress } from 'viem'
 import DcaTokenService from '@/services/dcaToken'
+import WalletService from '@/services/wallet'
+import { base } from 'viem/chains'
 
 export const dcaToken = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -63,8 +65,9 @@ export const dcaTestPool = async (_req: Request, res: Response): Promise<void> =
     const fee = 500
     const slippage = 0.75 // 0.75%
     const amountIn = '10'
-    const tokenETH = TOKEN[CHAIN_ID_SUPPORT[56]].ETH!
-    const tokenUSDT = TOKEN[CHAIN_ID_SUPPORT[56]].USDT!
+    const chainId = base.id
+    const tokenETH = TOKEN[CHAIN_ID_SUPPORT[chainId]].ETH!
+    const tokenUSDT = TOKEN[CHAIN_ID_SUPPORT[chainId]].USDT!
     let token0: {
       address: Address
       decimals: number
@@ -74,22 +77,25 @@ export const dcaTestPool = async (_req: Request, res: Response): Promise<void> =
       decimals: number
     }
 
-    const pool = new Pool()
-    const tokenService = new TokenService()
+    const pool = new Pool(chainId)
+    const walletService = new WalletService(chainId)
+    const tokenService = new TokenService(chainId)
 
     // First, get pool address to check token order
     const poolAddress = await pool.getPoolAddress({
-      chainId: 56, // BSC
+
       tokenA: tokenETH.address,
       tokenB: tokenUSDT.address,
       fee: 500 // or 3000, whatever fee tier exists
     })
+    const poolState = await pool.getPoolState(poolAddress)
+    const currentPoolPrice = pool.getCurrentPoolPrice({
+      poolAddress,
+      sqrtPriceX96: poolState.sqrtPriceX96,
+      token0Decimals: poolState.token0Decimals,
+      token1Decimals: poolState.token1Decimals
 
-
-    const [poolState, currentPoolPrice] = await Promise.all([
-      pool.getPoolState(poolAddress),
-      pool.getCurrentPoolPrice(poolAddress)
-    ])
+    })
 
 
     // nếu trong pool token 0 là USDT thì đổi chỗ token0, token1
@@ -113,57 +119,47 @@ export const dcaTestPool = async (_req: Request, res: Response): Promise<void> =
         decimals: tokenUSDT.decimals
       }
     }
-
-
-
-    // Calculate sqrtPriceLimitX96 for USDT → ETH swap
-    const infoSqrt = pool.calculateSqrtPriceLimitX96({
-      price: currentPoolPrice.price,
-      token0Decimals: token0.decimals,
-      token1Decimals: token1.decimals,
-      isToken0In: isUSDTToken0
-    })
-
     const quoteExactIn = await pool.getQuoteExactIn({
-      amountIn: convertBalanceToWei(amountIn), // Swap 10 USDT for testing
+      amountIn: convertBalanceToWei(amountIn, isUSDTToken0 ? token0.decimals : token1.decimals), // Swap 10 USDT for testing
       tokenIn: isUSDTToken0 ? token0.address : token1.address,
       tokenOut: isUSDTToken0 ? token1.address : token0.address,
       isUSDTToken0,
       fee
     })
-    const amountOutMinimumWei = BigNumber(quoteExactIn.amountOut).minus(BigNumber(quoteExactIn.amountOut).div(100).times(slippage))
-      .toFixed(0)
-    const amountOutMinimum = convertWeiToBalance(amountOutMinimumWei, isUSDTToken0 ? token1.decimals : token0.decimals)
-    console.log({ amountOutMinimum })
+
+    const amountOutMinimum = convertWeiToBalance(quoteExactIn?.amountOut.toString() || 0n, isUSDTToken0 ? token1.decimals : token0.decimals)
+
+    console.log({ poolState, currentPoolPrice, quoteExactIn })
 
 
     // const [balanceUSDTWei, balanceETHWei] = await Promise.all([
     //   tokenService.getBalance(tokenUSDT.address),
     //   tokenService.getBalance(tokenETH.address)
     // ])
+    // console.log('====================================')
+    // console.log({ balanceUSDTWei, balanceETHWei,poolAddress })
+    // console.log('====================================')
 
     // const balanceUSDT = convertWeiToBalance(balanceUSDTWei, tokenUSDT.decimals)
     // const balanceETH = convertWeiToBalance(balanceETHWei, tokenETH.decimals)
 
     // Execute actual swap: USDT → ETH
-    // const swapResult = await pool.swapUSDTToWETH({
-    //   poolAddress,
-    //   usdtAddress: tokenUSDT.address,
-    //   wethAddress: tokenETH.address,
-    //   fee: 500,
-    //   amountUSDT: amountIn, // Swap 10 USDT for testing
-    //   slippageBps: 75, // 0.75% slippage (75 basis points) - optimal for DCA consistency
-    //   sqrtPriceLimitX96: infoSqrt,
-    //   isUSDTToken0,
-    //   wethDecimals: tokenETH.decimals,
-    //   usdtDecimals: tokenUSDT.decimals,
-    //   amountOutMinimum: amountOutMinimum.toString()
-    // })
+    const swapResult = await pool.swapUSDTToWETH({
+      poolAddress,
+      usdtAddress: tokenUSDT.address,
+      wethAddress: tokenETH.address,
+      fee: 500,
+      amountUSDT: amountIn, // Swap 10 USDT for testing
+      slippageBps: 75, // 0.75% slippage (75 basis points) - optimal for DCA consistency
+      isUSDTToken0,
+      wethDecimals: tokenETH.decimals,
+      usdtDecimals: tokenUSDT.decimals,
+      amountOutMinimum: amountOutMinimum
+    })
 
     res.status(200).json({
       success: true,
       data: {
-        infoSqrt,
         priceETH: currentPoolPrice.price,
         poolInfo: {
           liquidity: poolState.liquidity.toString(),

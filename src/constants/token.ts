@@ -12,7 +12,16 @@ export const TOKEN = {
     }
   },
   [CHAIN_ID_SUPPORT[8453]]: {
-    'USD': {
+    'ETH': {
+      address: '0x4200000000000000000000000000000000000006' as `0x${string}`,
+      decimals: 18
+    },
+    'USDC': {
+      address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as `0x${string}`,
+      decimals: 6
+    },
+    //USDC =  USDT
+    'USDT': {
       address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as `0x${string}`,
       decimals: 6
     }

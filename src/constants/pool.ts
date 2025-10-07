@@ -1,8 +1,9 @@
+import { base, bsc } from 'viem/chains'
 import { CHAIN_ID_SUPPORT } from './chain'
 import { Address } from 'viem'
 
 export const DATA_UNISWAP = {
-  [CHAIN_ID_SUPPORT[56]]: {
+  [CHAIN_ID_SUPPORT[bsc.id]]: {
     uniswapPosition: '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613' as Address, //NonfungiblePositionManager
     factoryAddress: '0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7' as Address, //UniswapV3Factory
     //SwapRouter02 in Uniswap  
@@ -12,7 +13,7 @@ export const DATA_UNISWAP = {
     gasAddPosition: 2000000,
     quoterV2: '0x78D78E420Da98ad378D7799bE8f4AF69033EB077' as Address //QuoterV2
   },
-  [CHAIN_ID_SUPPORT[8453]]: {
+  [CHAIN_ID_SUPPORT[base.id]]: {
     uniswapPosition: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1' as Address, //NonfungiblePositionManager
     factoryAddress: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD' as Address, //UniswapV3Factory
     //SwapRouter02 in Uniswap  

@@ -26,7 +26,7 @@ class Pool extends web3 {
     tokenB: string
     fee: number
   }): Promise<string> {
-    const chainId = params.chainId || bsc.id
+    const chainId = params.chainId || this.chainId
     const factoryAddress = this.getFactoryAddress(chainId)
 
     try {
@@ -214,9 +214,9 @@ class Pool extends web3 {
     recipient?: string
   }) {
     if (!this.wallet) throw new Error('Wallet not initialized')
-    const chainId = params.chainId || bsc.id
+    const chainId = params.chainId || this.chainId
     const stableSymbol = params.stable || 'USDT'
-    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[56]][stableSymbol]!.address
+    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[chainId]][stableSymbol]!.address
     if (!stableAddress) throw new Error(`Stable ${stableSymbol} not configured for chain ${chainId}`)
     const tokenDecimals = await this.getDecimals(params.tokenIn)
     const rawAmountIn = this.toRaw(params.amountInDecimal, tokenDecimals)
@@ -241,9 +241,9 @@ class Pool extends web3 {
     recipient?: string
   }) {
     if (!this.wallet) throw new Error('Wallet not initialized')
-    const chainId = params.chainId || bsc.id
+    const chainId = params.chainId || this.chainId
     const stableSymbol = params.stable || 'USDT'
-    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[56]][stableSymbol]!.address
+    const stableAddress = TOKEN[CHAIN_ID_SUPPORT[chainId]][stableSymbol]!.address
     if (!stableAddress) throw new Error(`Stable ${stableSymbol} not configured for chain ${chainId}`)
     const stableDecimals = await this.getDecimals(stableAddress)
     const rawAmountIn = this.toRaw(params.amountInDecimal, stableDecimals)
@@ -465,14 +465,18 @@ class Pool extends web3 {
   }
 
   // Helper to get current pool price for reference
-  async getCurrentPoolPrice(poolAddress: string): Promise<{
+  getCurrentPoolPrice(param: {
+    poolAddress: string
+    sqrtPriceX96: bigint
+    token0Decimals: number
+    token1Decimals: number
+
+  }): {
     price: number
     sqrtPriceX96: string
-    token0Symbol: string
-    token1Symbol: string
-  }> {
-    const poolState = await this.getPoolState(poolAddress)
-    const { sqrtPriceX96, token0Decimals, token1Decimals, token0Symbol, token1Symbol } = poolState
+
+  } {
+    const { sqrtPriceX96, token0Decimals, token1Decimals } = param
 
     // Convert sqrtPriceX96 to actual price
     const Q96 = Math.pow(2, 96)
@@ -485,9 +489,8 @@ class Pool extends web3 {
 
     return {
       price: adjustedPrice,
-      sqrtPriceX96: sqrtPriceX96.toString(),
-      token0Symbol,
-      token1Symbol
+      sqrtPriceX96: sqrtPriceX96.toString()
+
     }
   }
 
