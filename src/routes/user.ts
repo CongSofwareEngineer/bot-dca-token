@@ -1,5 +1,5 @@
 import express from 'express'
-import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controllers/userController'
+import { createConfig, updateConfig, getAllUsers, getUserById, deleteUserById } from '@/controllers/userController'
 
 /**
  * @swagger
@@ -145,6 +145,92 @@ import { createConfig, updateConfig, getAllUsers, getUserById } from '@/controll
  *                 message:
  *                   type: string
  *                   example: "Server error while retrieving user"
+ *                 error:
+ *                   type: string
+ *                   example: "Error message"
+ *   delete:
+ *     summary: Delete user by ID
+ *     tags: [User Config]
+ *     description: Delete a user configuration permanently. This action is irreversible.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to delete
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439011"
+ *                         version:
+ *                           type: number
+ *                           example: 1
+ *                         stepSize:
+ *                           type: string
+ *                           example: "50"
+ *                         capital:
+ *                           type: string
+ *                           example: "1000"
+ *       400:
+ *         description: Bad request - User ID is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User ID is required"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error while deleting user"
  *                 error:
  *                   type: string
  *                   example: "Error message"
@@ -396,6 +482,7 @@ const router = express.Router()
 // No auth required
 router.get('/list', getAllUsers)
 router.get('/:id', getUserById)
+router.delete('/:id', deleteUserById)
 router.post('/create-config', createConfig)
 router.post('/update-config/:id', updateConfig)
 

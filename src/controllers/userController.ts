@@ -106,3 +106,52 @@ export const getUserById = async (req: AuthRequest, res: Response): Promise<void
     })
   }
 }
+
+export const deleteUserById = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    // Validate ID parameter
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      })
+      return
+    }
+
+    // Check if user exists before deletion
+    const existingUser = await User.findById(id).lean()
+    
+    if (!existingUser) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+      return
+    }
+
+    // Delete the user
+    const result = await User.findByIdAndDelete(id)
+
+    res.status(200).json({
+      success: true,
+      message: `User deleted successfully`,
+      data: {
+        deletedUser: {
+          id: result?._id,
+          version: result?.version,
+          stepSize: result?.stepSize,
+          capital: result?.capital
+        }
+      }
+    })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting user',
+      error: errorMessage
+    })
+  }
+}
