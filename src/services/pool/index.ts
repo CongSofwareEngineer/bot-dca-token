@@ -315,10 +315,10 @@ class Pool extends web3 {
     wethDecimals: number
     amountOutMinimum: string
   }) {
-    if (!this.wallet) throw new Error('Wallet not initialized')
+    if (!this.account || !this.wallet) throw new Error('Wallet not initialized')
     const router = this.getRouterAddress()
-    const account = (await this.wallet.getAddresses())[0]
-    const amountInWei = this.toRaw(params.amountUSDT, params.usdtDecimals)
+    const account = this.account.address as Address
+    const amountInWei = BigInt(convertBalanceToWei(params.amountUSDT, params.usdtDecimals))
     const slippageBps = params.slippageBps ?? 50 // Default 0.5% slippage
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 10) // 10 minutes
     let amountOutMinimumWei = convertBalanceToWei(params.amountOutMinimum, params.wethDecimals)

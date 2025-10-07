@@ -1,4 +1,4 @@
-import { base, bsc } from 'viem/chains'
+import { arbitrum, base, bsc } from 'viem/chains'
 import { CHAIN_ID_SUPPORT } from './chain'
 import { Address } from 'viem'
 
@@ -22,6 +22,16 @@ export const DATA_UNISWAP = {
     // wrapTokenNative: '0x4200000000000000000000000000000000000006' as Address,
     gasAddPosition: 2000000,
     quoterV2: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a' as Address //QuoterV2
+  },
+  [CHAIN_ID_SUPPORT[arbitrum.id]]: {
+    uniswapPosition: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88' as Address, //NonfungiblePositionManager
+    factoryAddress: '0x1F98431c8aD98523631AE4a59f267346ea31F984' as Address, //UniswapV3Factory
+    //SwapRouter02 in Uniswap  
+    //https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
+    routerAddress: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45' as Address, //Uniswap V3 SwapRouter on Base
+    // wrapTokenNative: '0x4200000000000000000000000000000000000006' as Address,
+    gasAddPosition: 2000000,
+    quoterV2: '0x61fFE014bA17989E743c5F6cB21bF9697530B21e' as Address //QuoterV2
   }
 
 }
