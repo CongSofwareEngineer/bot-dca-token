@@ -42,14 +42,12 @@ const sellToken = async (item: IDCATrade, config: IUser, amountUSD: string) => {
 
 const getRatePriceDrop = (currentPrice: number, minPrice: string, maxPrice: string) => {
   const rangePrice = BigNumber(maxPrice).minus(minPrice)
-  let ratePriceDrop = BigNumber(1)
+  const ratePriceDrop = BigNumber(1)
     .minus(BigNumber(BigNumber(currentPrice).minus(minPrice)).dividedBy(rangePrice))
     .abs()
     .toFixed()
 
-  if (BigNumber(currentPrice).isLessThan(minPrice)) {
-    ratePriceDrop = BigNumber(ratePriceDrop).plus(1).toFixed()
-  }
+
 
   return ratePriceDrop
 }
