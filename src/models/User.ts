@@ -25,7 +25,7 @@ const UserSchema: Schema = new Schema(
   {
     stepSize: {
       type: String,
-      default: '50',
+      default: '100',
       trim: true
     },
     slippageTolerance: {
@@ -59,7 +59,7 @@ const UserSchema: Schema = new Schema(
     priceBuyHistory: {
       type: String,
       trim: true,
-      default: ''
+      default: '1'
     },
     tokenInput: {
       type: String,
@@ -68,13 +68,11 @@ const UserSchema: Schema = new Schema(
     },
     ratioPriceUp: {
       type: String,
-      trim: true,
-      default: '5'
+      trim: true
     },
     ratioPriceDown: {
       type: String,
-      trim: true,
-      default: '1'
+      trim: true
     },
     amountETHBought: {
       type: String,
@@ -93,8 +91,7 @@ const UserSchema: Schema = new Schema(
     },
     ratioProfitToSell: {
       type: String,
-      trim: true,
-      default: '5'
+      trim: true
     },
     ratioPriceByHistory: {
       type: String,

@@ -251,7 +251,7 @@ import { createConfig, updateConfig, getAllUsers, getUserById, deleteUserById } 
  *               stepSize:
  *                 type: string
  *                 description: Maximum amount to invest per trade in USD
- *                 example: "50"
+ *                 example: "100"
  *               slippageTolerance:
  *                 type: string
  *                 description: Acceptable slippage percentage
