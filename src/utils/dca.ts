@@ -160,8 +160,9 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
       isFirstBuy = true
     }
 
-    //tính % giá giảm
+    //tính % giá giảm so với giá min
     const ratePriceDropByRangeConfig = getRatePriceDrop(token.price, configFinal.minPrice, configFinal.maxPrice)
+    const ratePriceDropByPriceHistory = BigNumber(BigNumber(token.price).minus(configFinal.priceBuyHistory).dividedBy(configFinal.priceBuyHistory)).abs().toNumber()
 
     //số tiền usd mua theo % giá giảm
     amountUSDToBuy = BigNumber(ratePriceDropByRangeConfig).multipliedBy(configFinal.stepSize).toFixed()
@@ -182,10 +183,12 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
     } else {
 
       if (BigNumber(token.price).isLessThan(configFinal.priceBuyHistory)) {
-        const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
+        if (BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
+          const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
-        itemFinal = itemAfterBuy
-        configFinal = configAfterBuy
+          itemFinal = itemAfterBuy
+          configFinal = configAfterBuy
+        }
       }
 
       if (BigNumber(token.price).gt(configFinal.priceBuyHistory)) {
@@ -200,14 +203,14 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
 
 
 
-        if (BigNumber(token.price).isLessThan(priceAverage)) {
+        if (BigNumber(token.price).isLessThan(priceAverage) && BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
           const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
           itemFinal = itemAfterBuy
           configFinal = configAfterBuy
         }
 
-        if (BigNumber(token.price).gt(priceAverage) && BigNumber(priceAverage).gt(0)) {
+        if (BigNumber(token.price).gt(priceAverage) && BigNumber(priceAverage).gt(0) && BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
 
           const ratioPriceUp = BigNumber(1).minus(ratePriceDropByRangeConfig).toFixed()
           let amountUSDToSell = BigNumber(ratioPriceUp).multipliedBy(configFinal.stepSize).toFixed()
