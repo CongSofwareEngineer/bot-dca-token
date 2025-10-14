@@ -182,6 +182,8 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
       configFinal = configAfterBuy
     } else {
 
+
+      //giá hiện tại < giá mua lần trước
       if (BigNumber(token.price).isLessThan(configFinal.priceBuyHistory)) {
         if (BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
           const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
@@ -191,6 +193,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         }
       }
 
+      //giá hiện tại > giá mua lần trước
       if (BigNumber(token.price).gt(configFinal.priceBuyHistory)) {
         let priceAverage = '0'
 
@@ -202,7 +205,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
         }
 
 
-
+        //giá hiện tại < giá trung bình và % giá giảm so với giá lịch sử mua > cấu hình thì mua
         if (BigNumber(token.price).isLessThan(priceAverage) && BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
           const { item: itemAfterBuy, config: configAfterBuy } = await buyToken(itemFinal, configFinal, amountUSDToBuy, amountETHToBuy)
 
@@ -210,6 +213,7 @@ export const dcaV2 = async (item: IDCATrade, token: Token, userConfig: IUser) =>
           configFinal = configAfterBuy
         }
 
+        //giá hiện tại > giá trung bình và % giá tăng so với giá lịch sử mua > cấu hình thì bán
         if (BigNumber(token.price).gt(priceAverage) && BigNumber(priceAverage).gt(0) && BigNumber(ratePriceDropByPriceHistory).gt(userConfig.ratioPriceByHistory || 0)) {
 
           const ratioPriceUp = BigNumber(1).minus(ratePriceDropByRangeConfig).toFixed()
