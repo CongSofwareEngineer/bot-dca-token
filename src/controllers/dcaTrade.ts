@@ -34,6 +34,27 @@ export const dcaToken = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
+export const getPriceToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tokenService = new TokenService()
+    const idETH = '1027'
+    const priceData = await tokenService.getPrice(idETH)
+
+    res.status(200).json({
+      success: true,
+      data: {
+        price: priceData.price
+      }
+    })
+  } catch (e: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get token price',
+      error: e.message
+    })
+  }
+}
+
 export const dcaTokenV1 = async (_req: Request, res: Response): Promise<void> => {
   try {
 

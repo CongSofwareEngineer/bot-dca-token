@@ -1,8 +1,10 @@
-import fetcher from '@/config/fetcher'
-import { Token } from './type'
 import Web3Service from '../web3'
 import { Address, erc20Abi } from 'viem'
 import { isNativeToken } from '@/utils/functions'
+import { base } from 'viem/chains'
+import { TOKEN } from '@/constants/token'
+import { CHAIN_ID_SUPPORT } from '@/constants/chain'
+import Pool from '../pool'
 
 class TokenService extends Web3Service {
 
@@ -12,11 +14,27 @@ class TokenService extends Web3Service {
     [key: string]: unknown
   }> {
     try {
-      //1027 = ETH
-      const res = await fetcher({
-        url: `https://www.binance.com/bapi/composite/v1/public/promo/cmc/cryptocurrency/quotes/latest?id=${id}`
+      const chainId = base.id
+      const tokenETH = TOKEN[CHAIN_ID_SUPPORT[chainId]].ETH!
+      const tokenUSDT = TOKEN[CHAIN_ID_SUPPORT[chainId]].USDT!
+
+      const pool = new Pool(chainId)
+
+      const poolAddress = await pool.getPoolAddress({
+
+        tokenA: tokenETH.address,
+        tokenB: tokenUSDT.address,
+        fee: 500 // or 3000, whatever fee tier exists
       })
-      return res?.data?.body?.data[id]?.quote?.USD
+      const poolState = await pool.getPoolState(poolAddress)
+      const currentPoolPrice = pool.getCurrentPoolPrice({
+        poolAddress,
+        sqrtPriceX96: poolState.sqrtPriceX96,
+        token0Decimals: poolState.token0Decimals,
+        token1Decimals: poolState.token1Decimals
+
+      })
+      return { price: currentPoolPrice.price }
     } catch {
       return { price: 0 }
     }

@@ -1,5 +1,5 @@
 import express from 'express'
-import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, clearDCAHistoryByUserId, dcaTestPool } from '@/controllers/dcaTrade'
+import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId, clearAllDCAHistory, clearDCAHistoryByUserId, dcaTestPool, getPriceToken } from '@/controllers/dcaTrade'
 
 /**
  * @swagger
@@ -10,6 +10,16 @@ import { dcaToken, dcaTokenV1, dcaTokenV2, getDCAHistory, getDCAHistoryByUserId,
 /**
  * @swagger
  * /api/dca/execute:
+ *   get:
+ *     summary: Get current DCA plan
+ *     tags: [DCA-Strategy]
+ *     responses:
+ *       200:
+ *         description: Plan details
+ */
+/**
+ * @swagger
+ * /api/dca/price-token:
  *   get:
  *     summary: Get current DCA plan
  *     tags: [DCA-Strategy]
@@ -365,6 +375,7 @@ const router = express.Router()
 
 // Unified DCA endpoint
 router.get('/execute', dcaToken)
+router.get('/price-token', getPriceToken)
 
 // Legacy endpoints (deprecated but kept for backwards compatibility)
 router.get('/dca-v1', dcaTokenV1)

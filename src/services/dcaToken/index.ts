@@ -39,6 +39,7 @@ class DcaTokenService {
       this.getTokenDataAndPrice()
     ])
 
+
     const [lastHistoryV1, lastHistoryV2] = await Promise.all([
       DCATrade.findOne({
         idUser: userV1?._id?.toString() || 'default'

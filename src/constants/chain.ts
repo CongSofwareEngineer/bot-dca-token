@@ -1,4 +1,4 @@
-import { base, bsc } from "viem/chains"
+import { base, bsc } from 'viem/chains'
 
 export const CHAIN_ID_SUPPORT = {
   56: 56,
@@ -23,7 +23,7 @@ export const CHAIN_SUPPORT = {
   [base.id]: {
     ...base,
     rpcUrls: {
-      default: { http: ['https://base-rpc.publicnode.com'] }
+      default: { http: ['https://nft.keyring.app/api/quickNodeRpc?chainType=base'] }
       // default: { http: ['https://nft.keyring.app/api/quickNodeRpc?chainType=base'] }
     }
   }
